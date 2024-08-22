@@ -80,10 +80,48 @@ import UIKit
             "data": [
                 "displayName": displayName,
                 "description": description,
-                "price": price
+                "price": price,
+                "productIdentifier": productIdentifier
             ]
         ];
     }
+
+//    func validateReceipt(receipt: String) {
+//        // let requestDictionary = ["receipt-data": receipt]
+//        // guard JSONSerialization.isValidJSONObject(requestDictionary), 
+//        //     let requestData = try? JSONSerialization.data(withJSONObject: requestDictionary) else {
+//        //     print("FAULT 1")
+//        //     return
+//        // }
+//        let requestData: [String: Any] = [
+//            "receipt-data": receipt,
+//            "password": "8006fc83269046d499d16a3111d6dbba" // Only needed for subscriptions
+//        ]
+//
+//         guard let httpBody = try? JSONSerialization.data(withJSONObject: requestData, options: []) else {
+//            print("Invalid JSON")
+//            return
+//        }
+//
+//        let storeURL = URL(string: "https://sandbox.itunes.apple.com/verifyReceipt")!
+//        var request = URLRequest(url: storeURL)
+//        request.httpMethod = "POST"
+//        request.httpBody = httpBody
+//        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+//
+//        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+//            guard error == nil, let data = data else {
+//                print("FAULT 2")
+//                return
+//            }
+//
+//            if let jsonResponse = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
+//                print(jsonResponse)
+//                // Handle the response
+//            }
+//        }
+//        task.resume()
+//    }
 
     @available(iOS 15.0.0, *)
     @objc public func purchaseProduct(_ productIdentifier: String) async -> PluginCallResultData {
@@ -110,10 +148,52 @@ import UIKit
                     };
             
                     await transaction.finish();
+                
+                    // make sure we load the complete transaction history
+                    // otherwise it can be possible that the receipt is not updated
+                    // and stays empty
+                    // let paymentQueue = SKPaymentQueue.default()
+                    // paymentQueue.restoreCompletedTransactions()
+                    refreshReceipt();
+
+                    if let appStoreReceiptURL = Bundle.main.appStoreReceiptURL,
+                        FileManager.default.fileExists(atPath: appStoreReceiptURL.path) {
+
+                        do {
+                            let receiptData = try Data(contentsOf: appStoreReceiptURL, options: .alwaysMapped)
+
+
+                            let receiptString = receiptData.base64EncodedString(options: [])
+                            print("Receipt String: ", receiptString)
+
+                            var responseDict: [String: Any] = [
+                                "responseCode": 0,
+                                "responseMessage": "Successfully purchased product",
+                                "receiptString": receiptString,
+                                "productId": transaction.productID,
+                                "productPrice": product.price,
+                            ]
+                          
+                            if let price: Decimal = transaction.price {
+                                responseDict["transactionPrice"] = price
+                            }
+                            
+                            if #available(iOS 16.0, *) {
+                                if let currency: Locale.Currency = transaction.currency {
+                                    responseDict["currency"] = String(describing: currency)
+                                }
+                            }
+
+                            return responseDict
+
+                        }
+                        catch { print("Couldn't read receipt data with error: " + error.localizedDescription) }
+                    }
+
                     return [
                         "responseCode": 0,
                         "responseMessage": "Successfully purchased product"
-                    ];
+                    ]
 
                 case .userCancelled:
 
@@ -157,19 +237,20 @@ import UIKit
             
 //            Loop through each verification result in currentEntitlements, verify the transaction
 //            then add it to the transactionDictionary if verified.
+            var index = 0
             for await verification in Transaction.currentEntitlements {
                 
                 let transaction: Transaction? = checkVerified(verification) as? Transaction
                 if(transaction != nil) {
 
-                    transactionDictionary[String(transaction!.id)] = [
+                    transactionDictionary[String(index)] = [
                         "productIdentifier": transaction!.productID,
                         "originalStartDate": transaction!.originalPurchaseDate,
                         "originalId": transaction!.originalID,
                         "transactionId": transaction!.id,
                         "expiryDate": transaction!.expirationDate
                     ]
-                    
+                    index += 1
                 }
                 
             }
@@ -337,4 +418,26 @@ import UIKit
 
     }
 
+    @objc private func refreshReceipt() {
+        let request = SKReceiptRefreshRequest()
+        request.delegate = self
+        request.start()
+    }
+
+}
+
+extension Subscriptions: SKRequestDelegate {
+    public func requestDidFinish(_ request: SKRequest) {
+        if request is SKReceiptRefreshRequest {
+            print("Receipt refresh request finished successfully.")
+            // Handle successful receipt refresh here
+        }
+    }
+
+    public func request(_ request: SKRequest, didFailWithError error: Error) {
+        if request is SKReceiptRefreshRequest {
+            print("Receipt refresh request failed with error: \(error.localizedDescription)")
+            // Handle receipt refresh failure here
+        }
+    }
 }
