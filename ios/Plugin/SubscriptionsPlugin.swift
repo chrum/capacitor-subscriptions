@@ -14,90 +14,77 @@ public class SubscriptionsPlugin: CAPPlugin {
 
     @objc func echo(_ call: CAPPluginCall) {
         let value = call.getString("value") ?? ""
-        
+
         call.resolve([
             "value": value
         ])
     }
 
-    
+
     @available(iOS 15.0.0, *)
     @objc func getProductDetails(_ call: CAPPluginCall) {
-        
-        guard let productIdentifier = call.getString("productIdentifier") as? String else {
-           call.reject("Must provide a productID")
-           return;
+        guard let productIdentifier = call.getString("productIdentifier") else {
+            call.reject("Must provide a productID")
+            return
         }
 
-        async {
-
-            let response = await implementation.getProductDetails(productIdentifier);
-            call.resolve(response);
-
+        Task {
+            do {
+                let response = await implementation.getProductDetails(productIdentifier)
+                call.resolve(response)
+            }
         }
     }
 
     @available(iOS 15.0.0, *)
     @objc func purchaseProduct(_ call: CAPPluginCall) {
-        
-        guard let productIdentifier = call.getString("productIdentifier") as? String else {
-           call.reject("Must provide a productID")
-           return;
+        guard let productIdentifier = call.getString("productIdentifier") else {
+            call.reject("Must provide a productID")
+            return
         }
 
-        async {
-
-            let response = await implementation.purchaseProduct(productIdentifier);
-            call.resolve(response);
-
+        Task {
+            do {
+                let response = await implementation.purchaseProduct(productIdentifier)
+                call.resolve(response)
+            }
         }
-
     }
 
     @available(iOS 15.0.0, *)
     @objc func getCurrentEntitlements(_ call: CAPPluginCall) {
-        
-        async {
-
-            let response = await implementation.getCurrentEntitlements();
-            call.resolve(response);
-
+        Task {
+            do {
+                let response = await implementation.getCurrentEntitlements()
+                call.resolve(response)
+            }
         }
-
     }
+
 
     @available(iOS 15.0.0, *)
     @objc func getLatestTransaction(_ call: CAPPluginCall) {
-
-        guard let productIdentifier = call.getString("productIdentifier") as? String else {
-           call.reject("Must provide a productID")
-           return;
-        }
-        
-        async {
-
-            let response = await implementation.getLatestTransaction(productIdentifier);
-            call.resolve(response);
-
+        guard let productIdentifier = call.getString("productIdentifier") else {
+            call.reject("Must provide a productID")
+            return;
         }
 
+        Task {
+            do {
+                let response = await implementation.getLatestTransaction(productIdentifier)
+                call.resolve(response)
+            }
+        }
     }
 
     @available(iOS 15.0.0, *)
     @objc func manageSubscriptions(_ call: CAPPluginCall) {
-        
-        async {
-
+        Task {
             do {
-                await implementation.manageSubscriptions();
+                await implementation.manageSubscriptions()
                 call.resolve(["Success": "Opened"])
-            } catch {
-                print(error.localizedDescription);
-                call.reject(error.localizedDescription)
             }
-
         }
-
     }
-    
+
 }

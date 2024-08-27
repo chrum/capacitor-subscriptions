@@ -74,5 +74,8 @@
     "android": {
       "src": "android"
     }
+  },
+  "dependencies": {
+    "@rollup/rollup-linux-arm64-gnu": "^4.21.1"
   }
 }

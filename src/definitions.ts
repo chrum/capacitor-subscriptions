@@ -18,9 +18,9 @@ export interface SubscriptionsPlugin {
    */
   purchaseProduct(options: { productIdentifier: string }): Promise< PurchaseProductResponse >;
 
-  
+
   getCurrentEntitlements(): Promise< CurrentEntitlementsResponse >;
-  
+
   getLatestTransaction(options: {productIdentifier: string}): Promise< LatestTransactionResponse >;
 
   manageSubscriptions(): any;
@@ -30,7 +30,7 @@ export interface SubscriptionsPlugin {
   addListener(
     eventName: 'ANDROID-PURCHASE-RESPONSE',
     listenerFunc: (response: AndroidPurchasedTrigger) => void,
-  ): Promise<PluginListenerHandle> & PluginListenerHandle;
+  ): Promise<PluginListenerHandle>;
 
 }
 
@@ -97,7 +97,7 @@ export interface PurchaseProductResponse {
 
 export type PurchaseProductIOSResponseCode = -1 | 0 | 1 | 2 | 3 | 4 | 5
 export type PurchaseProductIOSResponseMessage =
-"Incompatible with web" | 
+"Incompatible with web" |
 "Successfully purchased product" |
 "Could not find a product matching the given productIdentifier" |
 "Product seems to have been purchased but the transaction failed verification" |
@@ -118,7 +118,7 @@ export interface ProductDetailsResponse {
 }
 
 export type ProductDetailsResponseCode = -1 | 0 | 1
-export type ProductDetailsResponseMessage = 
+export type ProductDetailsResponseMessage =
 "Incompatible with web" |
 "Successfully found the product details for given productIdentifier" |
 "Could not find a product matching the given productIdentifier"

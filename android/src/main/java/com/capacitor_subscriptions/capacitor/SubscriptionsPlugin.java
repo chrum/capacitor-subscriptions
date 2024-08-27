@@ -1,4 +1,4 @@
-package com.capicitor_subscriptions.capacitor;
+package com.squareetlabs.capacitor.subscriptions;
 
 import android.content.Intent;
 import android.net.Uri;
@@ -6,18 +6,13 @@ import android.util.Log;
 
 import com.android.billingclient.api.AcknowledgePurchaseParams;
 import com.android.billingclient.api.BillingClient;
-import com.android.billingclient.api.BillingClientStateListener;
-import com.android.billingclient.api.BillingResult;
 import com.android.billingclient.api.Purchase;
 import com.android.billingclient.api.PurchasesUpdatedListener;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
-import com.getcapacitor.PluginResult;
 import com.getcapacitor.annotation.CapacitorPlugin;
-
-import org.json.JSONObject;
 
 @CapacitorPlugin(name = "Subscriptions")
 public class SubscriptionsPlugin extends Plugin {
@@ -33,7 +28,7 @@ public class SubscriptionsPlugin extends Plugin {
     // This listener is fired upon completing the billing flow, it is vital to call the acknowledgePurchase
     // method on the billingClient, with the purchase token otherwise Google will automatically cancel the subscription
     // shortly after the purchase
-    private PurchasesUpdatedListener purchasesUpdatedListener = (billingResult, purchases) -> {
+    private final PurchasesUpdatedListener purchasesUpdatedListener = (billingResult, purchases) -> {
 
         JSObject response = new JSObject();
 
@@ -51,7 +46,7 @@ public class SubscriptionsPlugin extends Plugin {
                         Log.i("Purchase ack", currentPurchase.getOriginalJson());
                         billingResult1.getResponseCode();
 
-                        response.put("successful", true);
+                        response.put("successful", billingResult1.getResponseCode());
 
                         // WARNING: Changed the notifyListeners method from protected to public in order to get the method call to work
                         // This may be a security issue in the future - in order to fix it, it may be best to move this listener + the billingClient
@@ -170,4 +165,3 @@ public class SubscriptionsPlugin extends Plugin {
     }
 
 }
-

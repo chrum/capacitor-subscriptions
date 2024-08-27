@@ -1,58 +1,45 @@
-package com.capicitor_subscriptions.capacitor;
+package com.squareetlabs.capacitor.subscriptions;
 
 import android.app.Activity;
 import android.util.Log;
 
-import com.android.billingclient.api.AcknowledgePurchaseParams;
-import com.android.billingclient.api.AcknowledgePurchaseResponseListener;
 import com.android.billingclient.api.BillingClient;
 
 import com.android.billingclient.api.BillingClientStateListener;
 import com.android.billingclient.api.BillingFlowParams;
 import com.android.billingclient.api.BillingResult;
 import com.android.billingclient.api.ProductDetails;
-import com.android.billingclient.api.ProductDetailsResponseListener;
 import com.android.billingclient.api.Purchase;
 import com.android.billingclient.api.PurchaseHistoryRecord;
-import com.android.billingclient.api.PurchaseHistoryResponseListener;
-import com.android.billingclient.api.PurchasesUpdatedListener;
 import com.android.billingclient.api.QueryProductDetailsParams;
 import com.android.billingclient.api.QueryPurchaseHistoryParams;
 import com.android.billingclient.api.QueryPurchasesParams;
-import com.getcapacitor.App;
 import com.getcapacitor.JSObject;
+import com.getcapacitor.Logger;
 import com.getcapacitor.PluginCall;
-import com.google.android.gms.ads.identifier.AdvertisingIdClient;
 
 import android.content.Context;
-import android.util.Pair;
+
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.BufferedReader;
-import java.io.DataOutputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 
 public class Subscriptions {
 
-    private Activity activity = null;
-    public Context context = null;
-    private SubscriptionsPlugin plugin;
-    private BillingClient billingClient;
+    private final Activity activity;
+    public Context context;
+    private final BillingClient billingClient;
     private int billingClientIsConnected = 0;
 
     private String googleVerifyEndpoint = "";
@@ -60,17 +47,17 @@ public class Subscriptions {
 
     public Subscriptions(SubscriptionsPlugin plugin, BillingClient billingClient) {
 
-        this.plugin = plugin;
         this.billingClient = billingClient;
         this.billingClient.startConnection(new BillingClientStateListener() {
             @Override
-            public void onBillingSetupFinished(BillingResult billingResult) {
-                if (billingResult.getResponseCode() ==  BillingClient.BillingResponseCode.OK) {
+            public void onBillingSetupFinished(@NonNull BillingResult billingResult) {
+                if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
                     billingClientIsConnected = 1;
                 } else {
                     billingClientIsConnected = billingResult.getResponseCode();
                 }
             }
+
             @Override
             public void onBillingServiceDisconnected() {
                 // Try to restart the connection on the next request to
@@ -98,7 +85,7 @@ public class Subscriptions {
 
         JSObject response = new JSObject();
 
-        if(billingClientIsConnected == 1) {
+        if (billingClientIsConnected == 1) {
 
             QueryProductDetailsParams.Product productToFind = QueryProductDetailsParams.Product.newBuilder()
                     .setProductId(productIdentifier)
@@ -126,21 +113,19 @@ public class Subscriptions {
 
                             List<ProductDetails.SubscriptionOfferDetails> subscriptionOfferDetails = productDetails.getSubscriptionOfferDetails();
 
-                            String price = subscriptionOfferDetails.get(0).getPricingPhases().getPricingPhaseList().get(0).getFormattedPrice();
-//                            String currency = subscriptionOfferDetails.get(0).getPricingPhases().getPricingPhaseList().get(0).getPriceCurrencyCode();
+                            String price = Objects.requireNonNull(subscriptionOfferDetails).get(0).getPricingPhases().getPricingPhaseList().get(0).getFormattedPrice();
 
                             JSObject data = new JSObject();
                             data.put("productIdentifier", productId);
                             data.put("displayName", title);
                             data.put("description", desc);
                             data.put("price", price);
-//                            data.put("currency", currency);
 
                             response.put("responseCode", 0);
                             response.put("responseMessage", "Successfully found the product details for given productIdentifier");
                             response.put("data", data);
 
-                        } catch(Exception e) {
+                        } catch (Exception e) {
                             Log.e("Err", e.toString());
                             response.put("responseCode", 1);
                             response.put("responseMessage", "Could not find a product matching the given productIdentifier");
@@ -149,8 +134,8 @@ public class Subscriptions {
                         call.resolve(response);
                     }
             );
-            
-        } else if(billingClientIsConnected == 2) {
+
+        } else if (billingClientIsConnected == 2) {
 
             response.put("responseCode", 500);
             response.put("responseMessage", "Android: BillingClient failed to initialise");
@@ -172,7 +157,7 @@ public class Subscriptions {
 
         JSObject response = new JSObject();
 
-        if(billingClientIsConnected == 1) {
+        if (billingClientIsConnected == 1) {
 
             QueryPurchaseHistoryParams queryPurchaseHistoryParams =
                     QueryPurchaseHistoryParams.newBuilder()
@@ -199,26 +184,24 @@ public class Subscriptions {
 
                             JSObject data = new JSObject();
                             String expiryDate = getExpiryDateFromGoogle(productIdentifier, currentPurchaseHistoryRecord.get("purchaseToken").toString());
-                            if(expiryDate != null) {
+                            if (expiryDate != null) {
                                 data.put("expiryDate", expiryDate);
                             }
-
-                            String dateFormat = "dd-MM-yyyy hh:mm";
-                            SimpleDateFormat simpleDateFormat = new SimpleDateFormat(dateFormat);
                             Calendar calendar = Calendar.getInstance();
                             calendar.setTimeInMillis(Long.parseLong((currentPurchaseHistoryRecord.get("purchaseTime").toString())));
-
+                            String orderId = currentPurchaseHistoryRecord.optString("orderId", "");  // Usamos optString para obtener un valor por defecto si la clave no existe
                             data.put("productIdentifier", currentPurchaseHistoryRecord.get("productId"));
-                            data.put("originalId", currentPurchaseHistoryRecord.get("orderId"));
-                            data.put("transactionId", currentPurchaseHistoryRecord.get("orderId"));
+                            data.put("originalId", orderId);
+                            data.put("transactionId", orderId);
+                            data.put("developerPayload",currentPurchaseHistoryRecord.optString("developerPayload", ""));  // Usamos optString para obtener un valor por defecto si la clave no existe
+                            data.put("purchaseToken", currentPurchaseHistoryRecord.get("purchaseToken").toString());
 
                             response.put("responseCode", 0);
                             response.put("responseMessage", "Successfully found the latest transaction matching given productIdentifier");
                             response.put("data", data);
                         }
                     } catch (Exception e) {
-                        e.printStackTrace();
-                        // This should never really be caught, but compile a response saying an unknown error occurred anyway.
+                        Logger.error(e.getMessage());
                     }
 
                     i++;
@@ -244,7 +227,7 @@ public class Subscriptions {
 
         JSObject response = new JSObject();
 
-        if(billingClientIsConnected == 1) {
+        if (billingClientIsConnected == 1) {
 
             QueryPurchasesParams queryPurchasesParams =
                     QueryPurchasesParams.newBuilder()
@@ -257,34 +240,32 @@ public class Subscriptions {
 
                         try {
 
-                            Integer amountOfPurchases = purchaseList.size();
+                            int amountOfPurchases = purchaseList.size();
 
-                            if(amountOfPurchases > 0 ) {
+                            if (amountOfPurchases > 0) {
 
-                                ArrayList<JSObject> entitlements = new ArrayList<JSObject>();
-                                for(int i = 0; i < purchaseList.size(); i++) {
+                                ArrayList<JSObject> entitlements = new ArrayList<>();
+                                for (int i = 0; i < purchaseList.size(); i++) {
 
                                     Purchase currentPurchase = purchaseList.get(i);
 
-                                    // if(currentPurchase.isAutoRenewing()) {
+                                    String expiryDate = this.getExpiryDateFromGoogle(currentPurchase.getProducts().get(0), currentPurchase.getPurchaseToken());
+                                    String orderId = currentPurchase.getOrderId();
 
-                                        String expiryDate = this.getExpiryDateFromGoogle(currentPurchase.getProducts().get(0), currentPurchase.getPurchaseToken());
-                                        String orderId = currentPurchase.getOrderId();
+                                    String dateFormat = "dd-MM-yyyy hh:mm";
+                                    SimpleDateFormat simpleDateFormat = new SimpleDateFormat(dateFormat, Locale.getDefault());
+                                    Calendar calendar = Calendar.getInstance();
+                                    calendar.setTimeInMillis(Long.parseLong((String.valueOf(currentPurchase.getPurchaseTime()))));
 
-                                        String dateFormat = "dd-MM-yyyy hh:mm";
-                                        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(dateFormat);
-                                        Calendar calendar = Calendar.getInstance();
-                                        calendar.setTimeInMillis(Long.parseLong((String.valueOf(currentPurchase.getPurchaseTime()))));
-
-                                        entitlements.add(
-                                                new JSObject()
-                                                        .put("productIdentifier", currentPurchase.getProducts().get(0))
-                                                        .put("expiryDate", expiryDate)
-                                                        .put("originalStartDate", simpleDateFormat.format(calendar.getTime()))
-                                                        .put("originalId", orderId)
-                                                        .put("transactionId", orderId)
-                                        );
-                                    // }
+                                    entitlements.add(
+                                            new JSObject()
+                                                    .put("productIdentifier", currentPurchase.getProducts().get(0))
+                                                    .put("expiryDate", expiryDate)
+                                                    .put("originalStartDate", simpleDateFormat.format(calendar.getTime()))
+                                                    .put("originalId", orderId)
+                                                    .put("transactionId", orderId)
+                                                    .put("purchaseToken", currentPurchase.getPurchaseToken())
+                                    );
                                 }
 
                                 response.put("responseCode", 0);
@@ -301,7 +282,7 @@ public class Subscriptions {
 
                             call.resolve(response);
 
-                        } catch(Exception e) {
+                        } catch (Exception e) {
                             Log.e("Error", e.toString());
                             response.put("responseCode", 2);
                             response.put("responseMessage", e.toString());
@@ -320,7 +301,7 @@ public class Subscriptions {
 
         JSObject response = new JSObject();
 
-        if(billingClientIsConnected == 1) {
+        if (billingClientIsConnected == 1) {
 
             QueryProductDetailsParams.Product productToFind = QueryProductDetailsParams.Product.newBuilder()
                     .setProductId(productIdentifier)
@@ -343,18 +324,19 @@ public class Subscriptions {
                                             List.of(
                                                     BillingFlowParams.ProductDetailsParams.newBuilder()
                                                             .setProductDetails(productDetails)
-                                                            .setOfferToken(productDetails.getSubscriptionOfferDetails().get(0).getOfferToken())
+                                                            .setOfferToken(Objects.requireNonNull(productDetails.getSubscriptionOfferDetails()).get(0).getOfferToken())
                                                             .build()
                                             )
                                     )
                                     .build();
                             BillingResult result = billingClient.launchBillingFlow(this.activity, billingFlowParams);
+
                             Log.i("RESULT", result.toString());
                             response.put("responseCode", 0);
                             response.put("responseMessage", "Successfully opened native popover");
 
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            Logger.error(e.getMessage());
                             response.put("responseCode", 1);
                             response.put("responseMessage", "Failed to open native popover");
                         }
@@ -377,10 +359,10 @@ public class Subscriptions {
 
             // Try to receive response from server
             try (BufferedReader br = new BufferedReader(
-                    new InputStreamReader(con.getInputStream(), "utf-8"))) {
+                    new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8))) {
 
                 StringBuilder googleResponse = new StringBuilder();
-                String responseLine = null;
+                String responseLine;
                 while ((responseLine = br.readLine()) != null) {
                     googleResponse.append(responseLine.trim());
                     Log.i("Response Line", responseLine);
@@ -390,11 +372,11 @@ public class Subscriptions {
                 if (con.getResponseCode() == 200) {
 
                     JSObject postResponseJSON = new JSObject(googleResponse.toString());
-                    JSObject googleResponseJSON = new JSObject(postResponseJSON.get("googleResponce").toString()); // <-- note the typo in response object from server
+                    JSObject googleResponseJSON = new JSObject(postResponseJSON.get("googleResponse").toString()); // <-- note the typo in response object from server
                     JSObject payloadJSON = new JSObject(googleResponseJSON.get("payload").toString());
 
                     String dateFormat = "EEE MMM dd yyyy HH:mm:ss 'GMT'Z '('z')'";
-                    SimpleDateFormat simpleDateFormat = new SimpleDateFormat(dateFormat);
+                    SimpleDateFormat simpleDateFormat = new SimpleDateFormat(dateFormat, Locale.getDefault());
                     Calendar calendar = Calendar.getInstance();
                     calendar.setTimeInMillis(Long.parseLong((payloadJSON.get("expiryTimeMillis").toString())));
 
@@ -406,11 +388,11 @@ public class Subscriptions {
                     return null;
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                Logger.error(e.getMessage());
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            Logger.error(e.getMessage());
         }
 
         // If the method manages to each this far before already returning, just return null
