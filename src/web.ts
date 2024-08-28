@@ -1,43 +1,76 @@
-import { WebPlugin } from '@capacitor/core';
-
-import type { SubscriptionsPlugin, ProductDetailsResponse, PurchaseProductResponse, CurrentEntitlementsResponse, LatestTransactionResponse } from './definitions';
+import { WebPlugin, PluginListenerHandle } from "@capacitor/core";
+import { SubscriptionsPlugin, ProductDetailsResponse, PurchaseProductResponse, CurrentEntitlementsResponse, LatestTransactionResponse, AndroidPurchasedTrigger } from './definitions';
 
 export class SubscriptionsWeb extends WebPlugin implements SubscriptionsPlugin {
-  setGoogleVerificationDetails(options: { googleVerifyEndpoint: string, bid: string }): void {
-    options;
+  protected listeners: { [eventName: string]: ((response: any) => void)[] } = {};
+
+  private removeEventListener(eventName: string, listenerFunc: (response: any) => void): void {
+    if (!this.listeners[eventName]) return;
+
+    const index = this.listeners[eventName].indexOf(listenerFunc);
+    if (index > -1) {
+      this.listeners[eventName].splice(index, 1);
+    }
   }
+
   async echo(options: { value: string }): Promise<{ value: string }> {
     console.log('ECHO', options);
     return options;
   }
-  async getProductDetails(options: { productIdentifier: string }): Promise< ProductDetailsResponse > {
-    options;
-    return {
-      responseCode: -1,
-      responseMessage: 'Incompatible with web',
-    }
-  }
-  async purchaseProduct(options: { productIdentifier: string }): Promise< PurchaseProductResponse > {
-    options;
-    return {
-      responseCode: -1,
-      responseMessage: 'Incompatible with web',
-    }
-  }
-  async getCurrentEntitlements(): Promise< CurrentEntitlementsResponse > {
-    return {
-      responseCode: -1,
-      responseMessage: 'Incompatible with web',
-    }
-  }
-  async getLatestTransaction(options: {productIdentifier: string}): Promise< LatestTransactionResponse > {
-    options;
-    return {
-      responseCode: -1,
-      responseMessage: 'Incompatible with web',
-    }
-  }
-  manageSubscriptions(): void {
 
+  async getProductDetails(options: { productIdentifier: string }): Promise<ProductDetailsResponse> {
+    console.log('getProductDetails', options);
+    return {
+      responseCode: -1,
+      responseMessage: 'Incompatible with web',
+    };
+  }
+
+  async purchaseProduct(options: { productIdentifier: string }): Promise<PurchaseProductResponse> {
+    console.log('purchaseProduct', options);
+    return {
+      responseCode: -1,
+      responseMessage: 'Incompatible with web',
+    };
+  }
+
+  async getCurrentEntitlements(): Promise<CurrentEntitlementsResponse> {
+    console.log('getCurrentEntitlements');
+    return {
+      responseCode: -1,
+      responseMessage: 'Incompatible with web',
+    };
+  }
+
+  async getLatestTransaction(options: { productIdentifier: string }): Promise<LatestTransactionResponse> {
+    console.log('getLatestTransaction', options);
+    return {
+      responseCode: -1,
+      responseMessage: 'Incompatible with web',
+    };
+  }
+
+  manageSubscriptions(): void {
+    console.log('manageSubscriptions');
+  }
+
+  setGoogleVerificationDetails(options: { googleVerifyEndpoint: string, bid: string }): void {
+    console.log('setGoogleVerificationDetails', options);
+  }
+
+  addListener(eventName: 'ANDROID-PURCHASE-RESPONSE', listenerFunc: (response: AndroidPurchasedTrigger) => void): Promise<PluginListenerHandle> {
+    if (!this.listeners[eventName]) {
+      this.listeners[eventName] = [];
+    }
+    this.listeners[eventName].push(listenerFunc);
+
+    const handle: PluginListenerHandle = {
+      remove: () => {
+        this.removeEventListener(eventName, listenerFunc);
+        return Promise.resolve();
+      }
+    };
+
+    return Promise.resolve(handle);
   }
 }
