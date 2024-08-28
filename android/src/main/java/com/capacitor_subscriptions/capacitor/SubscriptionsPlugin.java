@@ -83,6 +83,8 @@ public class SubscriptionsPlugin extends Plugin {
         String googleVerifyEndpoint = call.getString("googleVerifyEndpoint");
         String bid = call.getString("bid");
 
+        Log.i("SET-VERIFY", "Verification values updated");
+
         if(googleVerifyEndpoint != null && bid != null) {
             implementation.setGoogleVerificationDetails(googleVerifyEndpoint, bid);
         } else {

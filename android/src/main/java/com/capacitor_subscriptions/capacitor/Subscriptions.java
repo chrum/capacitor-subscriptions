@@ -353,9 +353,9 @@ public class Subscriptions {
         try {
 
             // Compile request to verify purchase token
-            URL obj = new URL(this.googleVerifyEndpoint + "?bid=" + this.googleBid + "&subId=" + productIdentifier + "&purchaseToken=" + purchaseToken);
+            URL obj = new URL(this.googleVerifyEndpoint + "&bid=" + this.googleBid + "&subId=" + productIdentifier + "&purchaseToken=" + purchaseToken);
             HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-            con.setRequestMethod("GET");
+            con.setRequestMethod("POST");
 
             // Try to receive response from server
             try (BufferedReader br = new BufferedReader(
