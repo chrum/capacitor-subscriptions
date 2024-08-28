@@ -54,7 +54,7 @@ repositories {
 
 
 dependencies {
-    def billing_version = "6.2.1"
+    def billing_version = "7.0.0"
     def play_services_ads_identifier_version = "18.1.0"
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation project(':capacitor-android')
