@@ -1,7 +1,7 @@
 
 # Capacitor Subscription
 
-A capacitor plugin which simplifies subscription handling - implementing StoreKit 2 and Google Billing 5.
+A capacitor plugin which simplifies subscription handling - implementing StoreKit 2 and Google Billing 7.
 
 ## Install
 
@@ -11,17 +11,17 @@ ionic cap sync
 ```
 
 ## Summary
-  
+
 
 This plugin is designed to simplify and reduce the workload of a developer when implementing auto-renewing subscriptions for iOS and Android apps.
 
 The plugin primarily uses a promise-based architecture to allow a developer to have greater control over the purchase and validation processes involved when interacting with StoreKit 2 and Google Billing 5.
 
-  
+
 
 Examples - Subscriptions
 
-  
+
 -   [Initial Android setup (server validation)](#markdown-header-initial-android-setup-server-validation)
 -   [Determining if user has an active subscription or not](#markdown-header-determining-if-user-has-an-active-subscription-or-not)
 -   [Retrieve the most recent transaction in order to provide user feedback on when their subscription expires/expired](#markdown-header-retrieve-the-most-recent-transaction-regardless-of-whether-or-not-it-is-active-useful-for-providing-feedback-on-when-the-subscription-willhas-expired)
@@ -38,22 +38,22 @@ For a more in-depth look into the different parameters for methods, along with t
 ## More in-depth review of the plugin
 
 As it stands, the [current plugin listed on the capacitor website](https://ionicframework.com/docs/native/in-app-purchase-2) can be used to achieve a working solution for subscription processing, however after using that plugin myself, I found many of the listener methods to be redundant, and the server-side transaction verifying tedious, and not very well documented.
-  
+
 
 By changing how the store data is received from listener-based methods to promise-based methods, the overall process of receiving data is a lot more stream-lined - returning only necessary data as opposed to every transaction a user has ever made.
 
-  
+
 
 This plugin implements capabilities to allow the developer to:
 
-  
+
 
 -   No longer have to use server-side technology to verify Apple’s horribly-formatted receipt - transactions are now automatically verified on Apple’s end.
 -   Retrieve all currently active subscriptions allowing you to determine whether or not the user has access to content with just a single line of code.
 -   Not have to worry about handling transactions which are made outside of the purchase-flow (e.g. an auto renewed subscription) as this is taken care of on the native side of the plugin.
 -   Create more responsive IAP processes by awaiting promise calls, making the processes synchronous and predictable.
 
-  
+
 
 ## Limitations
 
@@ -70,12 +70,12 @@ This plugin implements capabilities to allow the developer to:
 
 Before calling any methods on the plugin, it is essential to pass a few parameters into the "setGoogleVerificationDetails(...)" method. In an Ionic app, this would be most appropriate near the top of the App.tsx file - simply pass in the server endpoint for the google verification call, along with the app bid, e.g:
 
-```javascript 
+```javascript
 useEffect(() => {
 
-    SubscriptionController.setGoogleVerificationDetails(
-      "https://YOUR-END-POINT.com/verifyGoogleReceipt",
-      "com.*TEAM-NAME*.APP-NAME"
+    Subscription.setGoogleVerificationDetails(
+      googleVerifyEndpoint: "https://YOUR-END-POINT.com/",
+      bid: "YOUR-BUNDLE-ID"
     )
 
 	// start making calls to other plugin methods
@@ -92,15 +92,15 @@ Calling getCurrentEntitlements() will return an array of subscription transactio
 ```javascript
 const [hasActiveSubscription, setHasActiveSubscription] = useState(false)
 
-SubscriptionController.getCurrentEntitlements().then((entitlements: any) => {
+Subscription.getCurrentEntitlements().then((entitlements: any) => {
 	setHasActiveSubscription(entitlements.length > 0);
 });
 
 async getCurrentEntitlements() {
 
-	const response: CurrentEntitlementsResponse = await  Subscriptions.getCurrentEntitlements();
-	if(response.responseCode == 0){
-		return response.data  as  Transaction[];
+	const response: CurrentEntitlementsResponse = await Subscriptions.getCurrentEntitlements();
+	if (response.responseCode == 0){
+		return response.data as Transaction[];
 	} else {
 		return [];
 	}
@@ -124,7 +124,7 @@ productIDs = {
 }
 
 async getLatestTransaction(): Promise<Transaction | undefined> {
-	  
+
 	try {
 
 		const  platform = (await  Device.getInfo()).platform;
@@ -134,7 +134,7 @@ async getLatestTransaction(): Promise<Transaction | undefined> {
 		});
 
 		const  twelveMonthResponse: LatestTransactionResponse = await  Subscriptions.getLatestTransaction({
-		productIdentifier:  productIDs[platform]["twelveMonth"]
+			productIdentifier:  productIDs[platform]["twelveMonth"]
 		});
 
 		const  oneMonthSuccessful = oneMonthResponse.responseCode == 0;
@@ -142,13 +142,13 @@ async getLatestTransaction(): Promise<Transaction | undefined> {
 
 		// If user has had both a one month and twelve month subscription in the past
 		// we need to check the expiry date of both and return the most recent one.
-		if(oneMonthSuccessful && twelveMonthSuccessful) {	  
+		if (oneMonthSuccessful && twelveMonthSuccessful) {
 
 			const  oneMonthTransactionExpiry = new  Date((oneMonthResponse.data  as  Transaction)?.expiryDate);
 			const  twelveMonthTransactionExpiry = new  Date((twelveMonthResponse.data  as  Transaction)?.expiryDate);
 
 
-			if(oneMonthTransactionExpiry > twelveMonthTransactionExpiry) { return  oneMonthResponse.data  as  Transaction }
+			if (oneMonthTransactionExpiry > twelveMonthTransactionExpiry) { return  oneMonthResponse.data  as  Transaction }
 			else { return  twelveMonthResponse.data  as  Transaction }
 
 		} else  if (oneMonthSuccessful && !twelveMonthSuccessful) {
@@ -158,8 +158,8 @@ async getLatestTransaction(): Promise<Transaction | undefined> {
 		} else {
 			return  undefined;
 		}
-		
-	} catch(error: any) {
+
+	} catch (error: any) {
 
 		console.log("Error when attempting to retrieve transaction info", error);
 		return undefined;
@@ -189,8 +189,8 @@ const [twelveMonthPrice, settwelveMonthPrice] = useState("Loading...");
 
 async retrieveProductDetails() {
 
-	const platform = (await Device.getInfo()).platform;  
-	  
+	const platform = (await Device.getInfo()).platform;
+
 	let oneMonthProduct: ProductDetailsResponse = await  Subscriptions.getProductDetails({
 		productIdentifier:  productIDs[platform]["oneMonth"];
 	});
@@ -242,7 +242,7 @@ In your HTML code, inside a function which is triggered upon clicking a purchase
 	onClick={async () => {
 
 		setIsInPurchaseProcess(true);
-		await  purchaseProduct("twelveMonth"); // <-- waits until native popover is closed 
+		await  purchaseProduct("twelveMonth"); // <-- waits until native popover is closed
 		await  validateUserAccess(); // <-- Useful to have a easy accessible method which validates user access (either by checking current entitlements or most recent transaction).
 
 		if(isPlatform('ios')) {

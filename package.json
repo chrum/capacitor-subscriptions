@@ -1,7 +1,7 @@
 {
   "name": "capacitor-subscriptions",
-  "version": "1.0.6",
-  "description": "A capacitor plugin which simplifies subscription handling - implementing StoreKit 2 and Google Billing",
+  "version": "1.0.7",
+  "description": "A capacitor plugin which simplifies subscription handling - implementing StoreKit 2 and Google Billing 7",
   "main": "dist/plugin.cjs.js",
   "module": "dist/esm/index.js",
   "types": "dist/esm/index.d.ts",
@@ -13,18 +13,27 @@
     "ios/Plugin/",
     "CapacitorSubscriptions.podspec"
   ],
-  "author": "Craig Ronald",
-  "license": "none",
+  "author": "Bernhard Pfeifer",
+  "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/CraigRonald555/capacitor-subscriptions.git.git"
+    "url": "git+https://github.com/socialmedialabs/capacitor-subscriptions.git.git"
   },
   "bugs": {
-    "url": "https://github.com/CraigRonald555/capacitor-subscriptions.git/issues"
+    "url": "https://github.com/socialmedialabs/capacitor-subscriptions.git/issues"
   },
   "keywords": [
     "capacitor",
     "plugin",
+    "subscriptions",
+    "storekit",
+    "google billing",
+    "in-app purchases",
+    "iap",
+    "android",
+    "ios",
+    "ionic",
+    "mobile",
     "native"
   ],
   "scripts": {
