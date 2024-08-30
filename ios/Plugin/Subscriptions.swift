@@ -126,11 +126,7 @@ import UIKit
                     await transaction.finish();
                     return [
                         "responseCode": 0,
-                        "responseMessage": "Successfully purchased product",
-                        "data": [
-                            "productIdentifier": transaction.productID,
-                            "jws": verification.jwsRepresentation
-                        ]
+                        "responseMessage": "Successfully purchased product"
                     ];
 
                 case .userCancelled:
@@ -191,8 +187,11 @@ import UIKit
 
                     transactions.append(
                         [
-                            "productId": transaction!.productID,
-                            "jws": verification.jwsRepresentation
+                            "productIdentifier": transaction!.productID,
+                            "originalStartDate": transaction!.originalPurchaseDate,
+                            "originalId": transaction!.originalID,
+                            "transactionId": transaction!.id,
+                            "expiryDate": transaction!.expirationDate
                         ]
                     )
 
@@ -257,8 +256,12 @@ import UIKit
                 "responseCode": 0,
                 "responseMessage": "Latest transaction found",
                 "data": [
-                    "productId": transaction.productID,
-                    "jws": latestTransaction?.jwsRepresentation
+                    "productIdentifier": transaction.productID,
+                    "originalStartDate": transaction.originalPurchaseDate,
+                    "originalId": transaction.originalID,
+                    "transactionId": transaction.id,
+                    "expiryDate": transaction.expirationDate!,
+                    "purchaseToken": receiptString
                 ]
             ];
 
@@ -267,7 +270,7 @@ import UIKit
     }
 
     @available(iOS 15.0.0, *)
-    @objc public func refundLatestTransaction(_ productIdentifier: String) async -> PluginCallResultData {
+    @ob^c public func refundLatestTransaction(_ productIdentifier: String) async -> PluginCallResultData {
 
         do {
             guard let product: Product = await getProduct(productIdentifier) as? Product else {
