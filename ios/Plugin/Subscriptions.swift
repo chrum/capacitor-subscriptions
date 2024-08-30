@@ -87,7 +87,7 @@ import UIKit
     }
 
     @available(iOS 15.0.0, *)
-    @objc public func purchaseProduct(_ productIdentifier: String) async -> PluginCallResultData {
+    @objc public func purchaseProduct(_ productIdentifier: String, _ accountId: String?) async -> PluginCallResultData {
 
         do {
 
