@@ -48,6 +48,7 @@ export class SubscriptionsWeb extends WebPlugin implements SubscriptionsPlugin {
     return {
       responseCode: -1,
       responseMessage: 'Incompatible with web',
+      data: []
     };
   }
 

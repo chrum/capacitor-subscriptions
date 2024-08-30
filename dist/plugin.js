@@ -41,6 +41,7 @@ var capacitorSubscriptions = (function (exports, core) {
             return {
                 responseCode: -1,
                 responseMessage: 'Incompatible with web',
+                data: []
             };
         }
         async getLatestTransaction(options) {
