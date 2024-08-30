@@ -97,7 +97,20 @@ import UIKit
                     "responseMessage": "Could not find a product matching the given productIdentifier"
                 ];
             };
-            let result: Product.PurchaseResult = try await product.purchase();
+            var purchaseOptions = Set<Product.PurchaseOption>()
+
+            if (accountId != nil)  {
+                guard let accountUUID = UUID(uuidString: accountId!) else {
+                    return [
+                        "responseCode": 1,
+                        "responseMessage": "Invalid accountId"
+                    ]
+                }
+                let appAccountId = Product.PurchaseOption.appAccountToken(accountUUID)
+                purchaseOptions.insert(appAccountId)
+            }
+
+            let result: Product.PurchaseResult = try await product.purchase(options: purchaseOptions);
 
             switch result {
 
@@ -113,7 +126,7 @@ import UIKit
                     await transaction.finish();
                     return [
                         "responseCode": 0,
-                        "responseMessage": "Successfully purchased product"
+                        "responseMessage": "Successfully purchased product",
                         "data": [
                             "productIdentifier": transaction.productID,
                             "jws": verification.jwsRepresentation
@@ -154,11 +167,15 @@ import UIKit
     }
 
     @available(iOS 15.0.0, *)
-    @objc public func getCurrentEntitlements() async -> PluginCallResultData {
+    @objc public func getCurrentEntitlements(sync: Bool) async -> PluginCallResultData {
 
         do {
 
-            var transactionDictionary = [String: [String: Any]]();
+            if (sync)   {
+                try await AppStore.sync()
+            }
+
+            var transactions: [Any] = [];
 
             //            Loop through each verification result in currentEntitlements, verify the transaction
             //            then add it to the transactionDictionary if verified.
@@ -167,14 +184,12 @@ import UIKit
                 let transaction: Transaction? = checkVerified(verification) as? Transaction
                 if(transaction != nil) {
 
-                    transactionDictionary[String(transaction!.id)] = [
-                        "productIdentifier": transaction!.productID,
-                        "originalStartDate": transaction!.originalPurchaseDate,
-                        "originalId": transaction!.originalID,
-                        "transactionId": transaction!.id,
-                        "expiryDate": transaction!.expirationDate!,
-                        "purchaseToken": ""
-                    ]
+                    transactions.append(
+                        [
+                            "productId": transaction!.productID,
+                            "jws": verification.jwsRepresentation
+                        ]
+                    )
 
                 }
 
@@ -182,12 +197,12 @@ import UIKit
 
             //            If we have one or more entitlements in transactionDictionary
             //            we want the response to include it in the data property
-            if(transactionDictionary.count > 0) {
+            if(transactions.count > 0) {
 
                 let response = [
                     "responseCode": 0,
                     "responseMessage": "Successfully found all entitlements across all product types",
-                    "data": transactionDictionary
+                    "data": transactions
                 ] as [String : Any]
 
                 return response;
@@ -217,7 +232,8 @@ import UIKit
 
             };
 
-            guard let transaction: Transaction = checkVerified(await product.latestTransaction) as? Transaction else {
+            let latestTransaction = await product.latestTransaction
+            guard let transaction: Transaction = checkVerified(latestTransaction) as? Transaction else {
                 // The user hasn't purchased this product.
                 return [
                     "responseCode": 2,
@@ -225,42 +241,19 @@ import UIKit
                 ]
             }
 
-            print("expiration" + String(decoding: formatDate(transaction.expirationDate)!, as: UTF8.self))
-            print("transaction.expirationDate", transaction.expirationDate!)
-            print("transaction.originalID", transaction.originalID);
-
-            var receiptString = "";
-
-            if let appStoreReceiptURL = Bundle.main.appStoreReceiptURL,
-                FileManager.default.fileExists(atPath: appStoreReceiptURL.path) {
-
-
-                do {
-                    let receiptData = try Data(contentsOf: appStoreReceiptURL, options: .alwaysMapped)
-                    print("Receipt Data: ", receiptData)
-
-
-                    receiptString = receiptData.base64EncodedString(options: [Data.Base64EncodingOptions.endLineWithCarriageReturn])
-                    print("Receipt String: ", receiptString)
-
-
-                    // Read receiptData.
-                }
-                catch { print("Couldn't read receipt data with error: " + error.localizedDescription) }
+            if (transaction.expirationDate != nil)  {
+                print("expiration" + String(decoding: formatDate(transaction.expirationDate)!, as: UTF8.self))
             }
+
+            print("transaction.originalID", transaction.originalID);
 
 
             return [
                 "responseCode": 0,
                 "responseMessage": "Latest transaction found",
                 "data": [
-                    "productIdentifier": transaction.productID,
+                    "productId": transaction.productID,
                     "jws": latestTransaction?.jwsRepresentation
-                    "originalStartDate": transaction.originalPurchaseDate,
-                    "originalId": transaction.originalID,
-                    "transactionId": transaction.id,
-                    "expiryDate": transaction.expirationDate!,
-                    "purchaseToken": receiptString
                 ]
             ];
 

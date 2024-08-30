@@ -42,10 +42,11 @@ public class SubscriptionsPlugin: CAPPlugin {
             call.reject("Must provide a productID")
             return
         }
+        let accountId = call.getString("accountId")
 
         Task {
             do {
-                let response = await implementation.purchaseProduct(productIdentifier)
+                let response = await implementation.purchaseProduct(productIdentifier, accountId);
                 call.resolve(response)
             }
         }
@@ -53,9 +54,10 @@ public class SubscriptionsPlugin: CAPPlugin {
 
     @available(iOS 15.0.0, *)
     @objc func getCurrentEntitlements(_ call: CAPPluginCall) {
+        let sync = call.getBool("sync") ?? false
         Task {
             do {
-                let response = await implementation.getCurrentEntitlements()
+                let response = await implementation.getCurrentEntitlements(sync: sync);
                 call.resolve(response)
             }
         }
