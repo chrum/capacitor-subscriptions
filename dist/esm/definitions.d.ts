@@ -46,6 +46,7 @@ export interface Transaction {
     transactionId: string;
     originalStartDate: string;
     isTrial?: boolean;
+    purchaseToken?: string;
 }
 export interface LatestTransactionResponse {
     responseCode: LatestTransactionResponseCode;

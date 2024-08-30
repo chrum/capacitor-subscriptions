@@ -50,6 +50,7 @@ export interface Transaction {
   transactionId: string;
   originalStartDate: string;
   isTrial?: boolean;
+  purchaseToken?: string;
 }
 
 // latestTransactions interface and types
