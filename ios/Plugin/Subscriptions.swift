@@ -251,6 +251,25 @@ import UIKit
 
             print("transaction.originalID", transaction.originalID);
 
+            var receiptString = "";
+
+            if let appStoreReceiptURL = Bundle.main.appStoreReceiptURL,
+                FileManager.default.fileExists(atPath: appStoreReceiptURL.path) {
+
+
+                do {
+                    let receiptData = try Data(contentsOf: appStoreReceiptURL, options: .alwaysMapped)
+                    print("Receipt Data: ", receiptData)
+
+
+                    receiptString = receiptData.base64EncodedString(options: [Data.Base64EncodingOptions.endLineWithCarriageReturn])
+                    print("Receipt String: ", receiptString)
+
+
+                    // Read receiptData.
+                }
+                catch { print("Couldn't read receipt data with error: " + error.localizedDescription) }
+            }
 
             return [
                 "responseCode": 0,
@@ -270,7 +289,7 @@ import UIKit
     }
 
     @available(iOS 15.0.0, *)
-    @ob^c public func refundLatestTransaction(_ productIdentifier: String) async -> PluginCallResultData {
+    @objc public func refundLatestTransaction(_ productIdentifier: String) async -> PluginCallResultData {
 
         do {
             guard let product: Product = await getProduct(productIdentifier) as? Product else {
