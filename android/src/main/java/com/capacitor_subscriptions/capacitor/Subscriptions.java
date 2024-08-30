@@ -30,7 +30,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
@@ -328,7 +327,7 @@ public class Subscriptions {
                                                             .setOfferToken(Objects.requireNonNull(productDetails.getSubscriptionOfferDetails()).get(0).getOfferToken())
                                                             .build()
                                             )
-                                    )
+                                    );
                             if (accountId != null) {
                                 builder.setObfuscatedAccountId(accountId);
                             }

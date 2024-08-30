@@ -120,7 +120,7 @@ public class SubscriptionsPlugin extends Plugin {
             call.reject("Must provide a productID");
         }
 
-        implementation.purchaseProduct(productIdentifier, call);
+        implementation.getProductDetails(productIdentifier, call);
 
     }
 
