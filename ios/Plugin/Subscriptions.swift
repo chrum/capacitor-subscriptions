@@ -171,8 +171,13 @@ import UIKit
 
         do {
 
-            if (sync)   {
-                try await AppStore.sync()
+            if (sync) {
+                do {
+                    try await AppStore.sync()
+                } catch {
+                    // Fehlerbehandlung
+                    print(error.localizedDescription);
+                }
             }
 
             var transactions: [Any] = [];
