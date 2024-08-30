@@ -36,7 +36,7 @@ var capacitorSubscriptions = (function (exports, core) {
                 responseMessage: 'Incompatible with web',
             };
         }
-        async getCurrentEntitlements() {
+        async getCurrentEntitlements(options) {
             console.log('getCurrentEntitlements');
             return {
                 responseCode: -1,
@@ -45,6 +45,12 @@ var capacitorSubscriptions = (function (exports, core) {
         }
         async getLatestTransaction(options) {
             console.log('getLatestTransaction', options);
+            return {
+                responseCode: -1,
+                responseMessage: 'Incompatible with web',
+            };
+        }
+        async refundLatestTransaction(options) {
             return {
                 responseCode: -1,
                 responseMessage: 'Incompatible with web',

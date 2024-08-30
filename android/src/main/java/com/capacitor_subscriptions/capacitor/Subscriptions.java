@@ -15,6 +15,7 @@ import com.android.billingclient.api.QueryProductDetailsParams;
 import com.android.billingclient.api.QueryPurchaseHistoryParams;
 import com.android.billingclient.api.QueryPurchasesParams;
 import com.getcapacitor.JSObject;
+import com.getcapacitor.JSArray;
 import com.getcapacitor.Logger;
 import com.getcapacitor.PluginCall;
 
@@ -244,7 +245,7 @@ public class Subscriptions {
 
                             if (amountOfPurchases > 0) {
 
-                                ArrayList<JSObject> entitlements = new ArrayList<>();
+                                JSArray entitlements = new JSArray();
                                 for (int i = 0; i < purchaseList.size(); i++) {
 
                                     Purchase currentPurchase = purchaseList.get(i);
@@ -257,7 +258,7 @@ public class Subscriptions {
                                     Calendar calendar = Calendar.getInstance();
                                     calendar.setTimeInMillis(Long.parseLong((String.valueOf(currentPurchase.getPurchaseTime()))));
 
-                                    entitlements.add(
+                                    entitlements.put(
                                             new JSObject()
                                                     .put("productIdentifier", currentPurchase.getProducts().get(0))
                                                     .put("expiryDate", expiryDate)
@@ -297,7 +298,7 @@ public class Subscriptions {
 
     }
 
-    public void purchaseProduct(String productIdentifier, PluginCall call) {
+    public void purchaseProduct(String productIdentifier, String accountId, PluginCall call) {
 
         JSObject response = new JSObject();
 
@@ -319,7 +320,7 @@ public class Subscriptions {
 
                         try {
                             ProductDetails productDetails = productDetailsList.get(0);
-                            BillingFlowParams billingFlowParams = BillingFlowParams.newBuilder()
+                            BillingFlowParams.Builder builder = BillingFlowParams.newBuilder()
                                     .setProductDetailsParamsList(
                                             List.of(
                                                     BillingFlowParams.ProductDetailsParams.newBuilder()
@@ -328,7 +329,10 @@ public class Subscriptions {
                                                             .build()
                                             )
                                     )
-                                    .build();
+                            if (accountId != null) {
+                                builder.setObfuscatedAccountId(accountId);
+                            }
+                            BillingFlowParams billingFlowParams = builder.build();
                             BillingResult result = billingClient.launchBillingFlow(this.activity, billingFlowParams);
 
                             Log.i("RESULT", result.toString());

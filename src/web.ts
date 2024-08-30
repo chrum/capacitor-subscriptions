@@ -1,5 +1,13 @@
 import { WebPlugin, PluginListenerHandle } from "@capacitor/core";
-import { SubscriptionsPlugin, ProductDetailsResponse, PurchaseProductResponse, CurrentEntitlementsResponse, LatestTransactionResponse, AndroidPurchasedTrigger } from './definitions';
+import type {
+  SubscriptionsPlugin,
+  ProductDetailsResponse,
+  PurchaseProductResponse,
+  CurrentEntitlementsResponse,
+  LatestTransactionResponse,
+  AndroidPurchasedTrigger,
+  RefundLatestTransactionResponse
+} from './definitions';
 
 export class SubscriptionsWeb extends WebPlugin implements SubscriptionsPlugin {
   protected listeners: { [eventName: string]: ((response: any) => void)[] } = {};
@@ -26,7 +34,7 @@ export class SubscriptionsWeb extends WebPlugin implements SubscriptionsPlugin {
     };
   }
 
-  async purchaseProduct(options: { productIdentifier: string }): Promise<PurchaseProductResponse> {
+  async purchaseProduct(options: { productIdentifier: string, accountId?: string, acknowledgePurchases?: boolean }): Promise< PurchaseProductResponse > {
     console.log('purchaseProduct', options);
     return {
       responseCode: -1,
@@ -34,7 +42,8 @@ export class SubscriptionsWeb extends WebPlugin implements SubscriptionsPlugin {
     };
   }
 
-  async getCurrentEntitlements(): Promise<CurrentEntitlementsResponse> {
+  async getCurrentEntitlements(options: { sync: boolean }): Promise< CurrentEntitlementsResponse > {
+    options;
     console.log('getCurrentEntitlements');
     return {
       responseCode: -1,
@@ -48,6 +57,14 @@ export class SubscriptionsWeb extends WebPlugin implements SubscriptionsPlugin {
       responseCode: -1,
       responseMessage: 'Incompatible with web',
     };
+  }
+
+  async refundLatestTransaction(options: {productIdentifier: string}): Promise< RefundLatestTransactionResponse > {
+    options;
+    return {
+      responseCode: -1,
+      responseMessage: 'Incompatible with web',
+    }
   }
 
   manageSubscriptions(): void {

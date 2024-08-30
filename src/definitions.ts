@@ -16,21 +16,26 @@ export interface SubscriptionsPlugin {
    * Receives the product ID which the user wants to purchase and returns the transaction ID
    * @param options.productId contains the productIdentifier
    */
-  purchaseProduct(options: { productIdentifier: string }): Promise< PurchaseProductResponse >;
+  purchaseProduct(options: {
+    productIdentifier: string,
+    accountId?: string,
+    acknowledgePurchases?: boolean
+}): Promise<PurchaseProductResponse>;
 
+getCurrentEntitlements(options: { sync?: boolean }): Promise<CurrentEntitlementsResponse>;
 
-  getCurrentEntitlements(): Promise< CurrentEntitlementsResponse >;
+getLatestTransaction(options: { productIdentifier: string }): Promise<LatestTransactionResponse>;
 
-  getLatestTransaction(options: {productIdentifier: string}): Promise< LatestTransactionResponse >;
+refundLatestTransaction(options: { productIdentifier: string }): Promise<RefundLatestTransactionResponse>;
 
-  manageSubscriptions(): any;
+manageSubscriptions(): any;
 
-  setGoogleVerificationDetails(options: { googleVerifyEndpoint: string, bid: string }): void;
+setGoogleVerificationDetails(options: { googleVerifyEndpoint: string, bid: string }): void;
 
-  addListener(
+addListener(
     eventName: 'ANDROID-PURCHASE-RESPONSE',
     listenerFunc: (response: AndroidPurchasedTrigger) => void,
-  ): Promise<PluginListenerHandle>;
+): Promise<PluginListenerHandle>;
 
 }
 
@@ -50,6 +55,8 @@ export interface Transaction {
   transactionId: string;
   originalStartDate: string;
   isTrial?: boolean;
+  productId: string;
+  jws?: string;
   purchaseToken?: string;
 }
 
@@ -68,6 +75,19 @@ export type LatestTransactionResponseMessage =
 "Could not find a product matching the given productIdentifier" |
 "No transaction for given productIdentifier, or it could not be verified" |
 "Unknown problem trying to retrieve latest transaction"
+
+export interface RefundLatestTransactionResponse {
+  responseCode: RefundLatestTransactionResponseCode;
+  responseMessage: RefundLatestTransactionResponseMessage;
+}
+
+export type RefundLatestTransactionResponseCode = -1 | 0 | 1 | 2 | 3 | 4
+export type RefundLatestTransactionResponseMessage = "Incompatible with web" |
+"Successfully found the latest transaction matching given productIdentifier" |
+"Could not find a product matching the given productIdentifier" |
+"No transaction for given productIdentifier, or it could not be verified" |
+"Unknown problem trying to refund latest transaction" |
+"Problem getting UIScene"
 
 // currentEntitlements interface and types
 
@@ -126,4 +146,5 @@ export type ProductDetailsResponseMessage =
 
 export interface AndroidPurchasedTrigger {
   fired: boolean;
+  purchaseToken: string;
 }

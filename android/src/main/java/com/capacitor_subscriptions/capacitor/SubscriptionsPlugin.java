@@ -21,6 +21,8 @@ public class SubscriptionsPlugin extends Plugin {
 
     private BillingClient billingClient;
 
+    private Boolean acknowledgePurchases = true;
+
     public SubscriptionsPlugin () {
 
     }
@@ -36,7 +38,7 @@ public class SubscriptionsPlugin extends Plugin {
             for (int i = 0; i < purchases.size(); i++) {
 
                 Purchase currentPurchase = purchases.get(i);
-                if (!currentPurchase.isAcknowledged() && billingResult.getResponseCode() == 0 && currentPurchase.getPurchaseState() != 2) {
+                if (this.acknowledgePurchases && !currentPurchase.isAcknowledged() && billingResult.getResponseCode() == 0 && currentPurchase.getPurchaseState() != 2) {
 
                     AcknowledgePurchaseParams acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder()
                             .setPurchaseToken(currentPurchase.getPurchaseToken())
@@ -46,7 +48,8 @@ public class SubscriptionsPlugin extends Plugin {
                         Log.i("Purchase ack", currentPurchase.getOriginalJson());
                         billingResult1.getResponseCode();
 
-                        response.put("successful", billingResult1.getResponseCode());
+                        response.put("successful", true);
+                        response.put("purchaseToken", currentPurchase.getPurchaseToken());
 
                         // WARNING: Changed the notifyListeners method from protected to public in order to get the method call to work
                         // This may be a security issue in the future - in order to fix it, it may be best to move this listener + the billingClient
@@ -54,6 +57,13 @@ public class SubscriptionsPlugin extends Plugin {
                         // billingClient.
                         notifyListeners("ANDROID-PURCHASE-RESPONSE", response);
                     });
+                } else if (!this.acknowledgePurchases && billingResult.getResponseCode() == 0 && currentPurchase.getPurchaseState() != 2) {
+                    response.put("successful", true);
+                    response.put("purchaseToken", currentPurchase.getPurchaseToken());
+                    notifyListeners("ANDROID-PURCHASE-RESPONSE", response);
+                } else if (billingResult.getResponseCode() == 0 && currentPurchase.getPurchaseState() != 2) {
+                    response.put("successful", false);
+                    notifyListeners("ANDROID-PURCHASE-RESPONSE", response);
                 } else {
                     response.put("successful", false);
                     notifyListeners("ANDROID-PURCHASE-RESPONSE", response);
@@ -106,11 +116,15 @@ public class SubscriptionsPlugin extends Plugin {
 
         String productIdentifier = call.getString("productIdentifier");
 
+        String accountId = call.getString("accountId");
+
+        this.acknowledgePurchases = call.getBoolean("acknowledgePurchases") != null ? call.getBoolean("acknowledgePurchases") : Boolean.TRUE;
+
         if (productIdentifier == null) {
             call.reject("Must provide a productID");
         }
 
-        implementation.getProductDetails(productIdentifier, call);
+        implementation.purchaseProduct(productIdentifier, accountId, call);
 
     }
 

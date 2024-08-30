@@ -30,7 +30,8 @@ export class SubscriptionsWeb extends WebPlugin {
             responseMessage: 'Incompatible with web',
         };
     }
-    async getCurrentEntitlements() {
+    async getCurrentEntitlements(options) {
+        options;
         console.log('getCurrentEntitlements');
         return {
             responseCode: -1,
@@ -39,6 +40,13 @@ export class SubscriptionsWeb extends WebPlugin {
     }
     async getLatestTransaction(options) {
         console.log('getLatestTransaction', options);
+        return {
+            responseCode: -1,
+            responseMessage: 'Incompatible with web',
+        };
+    }
+    async refundLatestTransaction(options) {
+        options;
         return {
             responseCode: -1,
             responseMessage: 'Incompatible with web',
