@@ -276,6 +276,15 @@
           "type": "'Incompatible with web' | 'Could not find a product matching the given productIdentifier' | 'Successfully purchased product' | 'Product seems to have been purchased but the transaction failed verification' | 'User closed the native popover before purchasing' | 'Product request made but is currently pending - likely due to parental restrictions' | 'An unknown error occurred whilst in the purchasing process' | 'Successfully opened native popover' | 'Failed to open native popover'"
         },
         {
+          "name": "data",
+          "tags": [],
+          "docs": "",
+          "complexTypes": [
+            "Transaction"
+          ],
+          "type": "Transaction"
+        },
+        {
           "name": "receiptString",
           "tags": [],
           "docs": "",
@@ -309,42 +318,6 @@
           "docs": "",
           "complexTypes": [],
           "type": "number | undefined"
-        }
-      ]
-    },
-    {
-      "name": "CurrentEntitlementsResponse",
-      "slug": "currententitlementsresponse",
-      "docs": "",
-      "tags": [],
-      "methods": [],
-      "properties": [
-        {
-          "name": "responseCode",
-          "tags": [],
-          "docs": "",
-          "complexTypes": [
-            "CurrentEntitlementsResponseCode"
-          ],
-          "type": "CurrentEntitlementsResponseCode"
-        },
-        {
-          "name": "responseMessage",
-          "tags": [],
-          "docs": "",
-          "complexTypes": [
-            "CurrentEntitlementsResponseMessage"
-          ],
-          "type": "CurrentEntitlementsResponseMessage"
-        },
-        {
-          "name": "data",
-          "tags": [],
-          "docs": "",
-          "complexTypes": [
-            "Transaction"
-          ],
-          "type": "Transaction[] | undefined"
         }
       ]
     },
@@ -417,6 +390,42 @@
           "docs": "",
           "complexTypes": [],
           "type": "string | undefined"
+        }
+      ]
+    },
+    {
+      "name": "CurrentEntitlementsResponse",
+      "slug": "currententitlementsresponse",
+      "docs": "",
+      "tags": [],
+      "methods": [],
+      "properties": [
+        {
+          "name": "responseCode",
+          "tags": [],
+          "docs": "",
+          "complexTypes": [
+            "CurrentEntitlementsResponseCode"
+          ],
+          "type": "CurrentEntitlementsResponseCode"
+        },
+        {
+          "name": "responseMessage",
+          "tags": [],
+          "docs": "",
+          "complexTypes": [
+            "CurrentEntitlementsResponseMessage"
+          ],
+          "type": "CurrentEntitlementsResponseMessage"
+        },
+        {
+          "name": "data",
+          "tags": [],
+          "docs": "",
+          "complexTypes": [
+            "Transaction"
+          ],
+          "type": "Transaction[] | undefined"
         }
       ]
     },
@@ -507,7 +516,7 @@
       "methods": [],
       "properties": [
         {
-          "name": "fired",
+          "name": "successful",
           "tags": [],
           "docs": "",
           "complexTypes": [],

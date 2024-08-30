@@ -114,6 +114,10 @@ import UIKit
                     return [
                         "responseCode": 0,
                         "responseMessage": "Successfully purchased product"
+                        "data": [
+                            "productIdentifier": transaction.productID,
+                            "jws": verification.jwsRepresentation
+                        ]
                     ];
 
                 case .userCancelled:
@@ -251,6 +255,7 @@ import UIKit
                 "responseMessage": "Latest transaction found",
                 "data": [
                     "productIdentifier": transaction.productID,
+                    "jws": latestTransaction?.jwsRepresentation
                     "originalStartDate": transaction.originalPurchaseDate,
                     "originalId": transaction.originalID,
                     "transactionId": transaction.id,
@@ -261,6 +266,46 @@ import UIKit
 
         }
 
+    }
+
+    @available(iOS 15.0.0, *)
+    @objc public func refundLatestTransaction(_ productIdentifier: String) async -> PluginCallResultData {
+
+        do {
+            guard let product: Product = await getProduct(productIdentifier) as? Product else {
+                return [
+                    "responseCode": 1,
+                    "responseMessage": "Could not find a product matching the given productIdentifier"
+                ]
+
+            };
+
+            let latestTransaction = await product.latestTransaction
+            guard let transaction: Transaction = checkVerified(latestTransaction) as? Transaction else {
+                // The user hasn't purchased this product.
+                return [
+                    "responseCode": 2,
+                    "responseMessage": "No transaction for given productIdentifier, or it could not be verified"
+                ]
+            }
+
+            guard let scene = await UIApplication.shared.connectedScenes.first as? UIWindowScene else {
+                return [
+                    "responseCode": 4,
+                    "responseMessage": "Problem getting UIScene"
+                ]
+            }
+            try await transaction.beginRefundRequest(in: scene)
+        } catch {
+            print("Error:" + error.localizedDescription);
+            return [
+                "responseCode": 3,
+                "responseMessage": "Unknown problem trying to refund latest transaction"
+            ]
+        }
+        return [
+            "responseCode": 0
+        ]
     }
 
     @available(iOS 15.0.0, *)

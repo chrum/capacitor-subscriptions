@@ -109,6 +109,7 @@ export type CurrentEntitlementsResponseMessage =
 export interface PurchaseProductResponse {
 	responseCode: PurchaseProductIOSResponseCode | PurchaseProductAndroidResponseCode
 	responseMessage: PurchaseProductIOSResponseMessage | PurchaseProductAndroidResponseMessage
+  data?: Transaction
   receiptString?: string
   currency?: string
   productId?: string
@@ -145,6 +146,6 @@ export type ProductDetailsResponseMessage =
 "Could not find a product matching the given productIdentifier"
 
 export interface AndroidPurchasedTrigger {
-  fired: boolean;
+  successful: boolean;
   purchaseToken: string;
 }

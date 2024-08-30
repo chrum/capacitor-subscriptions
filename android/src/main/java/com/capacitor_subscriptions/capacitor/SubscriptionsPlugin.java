@@ -1,4 +1,4 @@
-package com.squareetlabs.capacitor.subscriptions;
+package com.capacitor_subscriptions.capacitor;
 
 import android.content.Intent;
 import android.net.Uri;
@@ -116,15 +116,11 @@ public class SubscriptionsPlugin extends Plugin {
 
         String productIdentifier = call.getString("productIdentifier");
 
-        String accountId = call.getString("accountId");
-
-        this.acknowledgePurchases = call.getBoolean("acknowledgePurchases") != null ? call.getBoolean("acknowledgePurchases") : Boolean.TRUE;
-
         if (productIdentifier == null) {
             call.reject("Must provide a productID");
         }
 
-        implementation.purchaseProduct(productIdentifier, accountId, call);
+        implementation.purchaseProduct(productIdentifier, call);
 
     }
 
@@ -132,12 +128,15 @@ public class SubscriptionsPlugin extends Plugin {
     public void purchaseProduct(PluginCall call) {
 
         String productIdentifier = call.getString("productIdentifier");
+        String accountId = call.getString("accountId");
+
+        this.acknowledgePurchases = call.getBoolean("acknowledgePurchases") != null ? call.getBoolean("acknowledgePurchases") : Boolean.TRUE;
 
         if(productIdentifier == null) {
             call.reject("Must provide a productID");
         }
 
-        implementation.purchaseProduct(productIdentifier, call);
+        implementation.purchaseProduct(productIdentifier, accountId, call);
 
     }
 

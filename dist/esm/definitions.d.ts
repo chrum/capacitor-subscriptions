@@ -80,6 +80,7 @@ export type CurrentEntitlementsResponseMessage = "Incompatible with web" | "Succ
 export interface PurchaseProductResponse {
     responseCode: PurchaseProductIOSResponseCode | PurchaseProductAndroidResponseCode;
     responseMessage: PurchaseProductIOSResponseMessage | PurchaseProductAndroidResponseMessage;
+    data?: Transaction;
     receiptString?: string;
     currency?: string;
     productId?: string;
@@ -98,6 +99,6 @@ export interface ProductDetailsResponse {
 export type ProductDetailsResponseCode = -1 | 0 | 1;
 export type ProductDetailsResponseMessage = "Incompatible with web" | "Successfully found the product details for given productIdentifier" | "Could not find a product matching the given productIdentifier";
 export interface AndroidPurchasedTrigger {
-    fired: boolean;
+    successful: boolean;
     purchaseToken: string;
 }
