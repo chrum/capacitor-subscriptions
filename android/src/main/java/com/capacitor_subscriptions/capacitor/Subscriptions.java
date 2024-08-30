@@ -15,7 +15,6 @@ import com.android.billingclient.api.QueryProductDetailsParams;
 import com.android.billingclient.api.QueryPurchaseHistoryParams;
 import com.android.billingclient.api.QueryPurchasesParams;
 import com.getcapacitor.JSObject;
-import com.getcapacitor.JSArray;
 import com.getcapacitor.Logger;
 import com.getcapacitor.PluginCall;
 
@@ -30,6 +29,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
@@ -244,7 +244,7 @@ public class Subscriptions {
 
                             if (amountOfPurchases > 0) {
 
-                                JSArray entitlements = new JSArray();
+                                ArrayList<JSObject> entitlements = new ArrayList<JSObject>();
                                 for (int i = 0; i < purchaseList.size(); i++) {
 
                                     Purchase currentPurchase = purchaseList.get(i);
@@ -257,7 +257,7 @@ public class Subscriptions {
                                     Calendar calendar = Calendar.getInstance();
                                     calendar.setTimeInMillis(Long.parseLong((String.valueOf(currentPurchase.getPurchaseTime()))));
 
-                                    entitlements.put(
+                                    entitlements.add(
                                             new JSObject()
                                                     .put("productIdentifier", currentPurchase.getProducts().get(0))
                                                     .put("expiryDate", expiryDate)
