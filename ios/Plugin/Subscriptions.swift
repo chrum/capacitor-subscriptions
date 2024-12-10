@@ -253,24 +253,6 @@ import UIKit
 
             var receiptString = "";
 
-            if let appStoreReceiptURL = Bundle.main.appStoreReceiptURL,
-                FileManager.default.fileExists(atPath: appStoreReceiptURL.path) {
-
-
-                do {
-                    let receiptData = try Data(contentsOf: appStoreReceiptURL, options: .alwaysMapped)
-                    print("Receipt Data: ", receiptData)
-
-
-                    receiptString = receiptData.base64EncodedString(options: [Data.Base64EncodingOptions.endLineWithCarriageReturn])
-                    print("Receipt String: ", receiptString)
-
-
-                    // Read receiptData.
-                }
-                catch { print("Couldn't read receipt data with error: " + error.localizedDescription) }
-            }
-
             return [
                 "responseCode": 0,
                 "responseMessage": "Latest transaction found",
