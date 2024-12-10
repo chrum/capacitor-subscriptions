@@ -245,13 +245,29 @@ import UIKit
                 ]
             }
 
-            if (transaction.expirationDate != nil)  {
-                print("expiration" + String(decoding: formatDate(transaction.expirationDate)!, as: UTF8.self))
-            }
-
+            print("expiration" + String(decoding: formatDate(transaction.expirationDate)!, as: UTF8.self))
+            print("transaction.expirationDate", transaction.expirationDate!)
             print("transaction.originalID", transaction.originalID);
 
             var receiptString = "";
+
+            if let appStoreReceiptURL = Bundle.main.appStoreReceiptURL,
+                FileManager.default.fileExists(atPath: appStoreReceiptURL.path) {
+
+
+                do {
+                    let receiptData = try Data(contentsOf: appStoreReceiptURL, options: .alwaysMapped)
+                    print("Receipt Data: ", receiptData)
+
+
+                    receiptString = receiptData.base64EncodedString(options: [Data.Base64EncodingOptions.endLineWithCarriageReturn])
+                    print("Receipt String: ", receiptString)
+
+
+                    // Read receiptData.
+                }
+                catch { print("Couldn't read receipt data with error: " + error.localizedDescription) }
+            }
 
             return [
                 "responseCode": 0,
