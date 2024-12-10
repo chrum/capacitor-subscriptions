@@ -54,9 +54,10 @@ public class SubscriptionsPlugin: CAPPlugin {
 
     @available(iOS 15.0.0, *)
     @objc func getCurrentEntitlements(_ call: CAPPluginCall) {
+        let sync = call.getBool("sync") ?? false
         Task {
             do {
-                let response = await implementation.getCurrentEntitlements()
+                let response = await implementation.getCurrentEntitlements(sync: sync);
                 call.resolve(response)
             }
         }
