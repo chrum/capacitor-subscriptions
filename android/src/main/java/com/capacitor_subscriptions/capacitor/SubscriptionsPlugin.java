@@ -89,14 +89,15 @@ public class SubscriptionsPlugin extends Plugin {
     }
 
     @PluginMethod
-    public void setGoogleVerificationDetails(PluginCall call) {
-        String googleVerifyEndpoint = call.getString("googleVerifyEndpoint");
+    public void setApiVerificationDetails(PluginCall call) {
+        String apiEndpoint = call.getString("apiEndpoint");
+        String jwt = call.getString("jwt");
         String bid = call.getString("bid");
 
         Log.i("SET-VERIFY", "Verification values updated");
 
-        if(googleVerifyEndpoint != null && bid != null) {
-            implementation.setGoogleVerificationDetails(googleVerifyEndpoint, bid);
+        if(apiEndpoint != null && jwt != null && bid != null) {
+            implementation.setApiVerificationDetails(apiEndpoint, jwt, bid);
         } else {
             call.reject("Missing required parameters");
         }
@@ -164,18 +165,18 @@ public class SubscriptionsPlugin extends Plugin {
     public void manageSubscriptions(PluginCall call) {
 
         String productIdentifier = call.getString("productIdentifier");
-        String bid = call.getString("bid");
+        String jwt = call.getString("jwt");
 
         if(productIdentifier == null) {
             call.reject("Must provide a productID");
         }
 
-        if(bid == null) {
+        if(jwt == null) {
             call.reject("Must provide a bundleID");
         }
 
         Intent browserIntent = new Intent(Intent.ACTION_VIEW,
-                Uri.parse("https://play.google.com/store/account/subscriptions?sku=" + productIdentifier + "&package=" + bid));
+                Uri.parse("https://play.google.com/store/account/subscriptions?sku=" + productIdentifier + "&package=" + jwt));
         getActivity().startActivity(browserIntent);
     }
 

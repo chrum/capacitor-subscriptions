@@ -23,6 +23,8 @@ import android.content.Context;
 
 import androidx.annotation.NonNull;
 
+import java.util.Date;
+import java.io.OutputStream;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -42,8 +44,9 @@ public class Subscriptions {
     private final BillingClient billingClient;
     private int billingClientIsConnected = 0;
 
-    private String googleVerifyEndpoint = "";
-    private String googleBid = "";
+    private String apiEndpoint = "";
+    private String jwt = "";
+    private String bid = "";
 
     public Subscriptions(SubscriptionsPlugin plugin, BillingClient billingClient) {
 
@@ -74,9 +77,10 @@ public class Subscriptions {
         return value;
     }
 
-    public void setGoogleVerificationDetails(String googleVerifyEndpoint, String bid) {
-        this.googleVerifyEndpoint = googleVerifyEndpoint;
-        this.googleBid = bid;
+    public void setApiVerificationDetails(String apiEndpoint, String jwt, String bid) {
+        this.apiEndpoint = apiEndpoint;
+        this.jwt = jwt;
+        this.bid = bid;
 
         Log.i("SET-VERIFY", "Verification values updated");
     }
@@ -183,13 +187,13 @@ public class Subscriptions {
                             found = true;
 
                             JSObject data = new JSObject();
-                            String expiryDate = getExpiryDateFromGoogle(productIdentifier, currentPurchaseHistoryRecord.get("purchaseToken").toString());
-                            if (expiryDate != null) {
-                                data.put("expiryDate", expiryDate);
-                            }
                             Calendar calendar = Calendar.getInstance();
                             calendar.setTimeInMillis(Long.parseLong((currentPurchaseHistoryRecord.get("purchaseTime").toString())));
                             String orderId = currentPurchaseHistoryRecord.optString("orderId", "");  // Usamos optString para obtener un valor por defecto si la clave no existe
+                            String expiryDate = getExpiryDateFromApi(orderId);
+                            if (expiryDate != null) {
+                                data.put("expiryDate", expiryDate);
+                            }
                             data.put("productIdentifier", currentPurchaseHistoryRecord.get("productId"));
                             data.put("originalId", orderId);
                             data.put("transactionId", orderId);
@@ -249,8 +253,8 @@ public class Subscriptions {
 
                                     Purchase currentPurchase = purchaseList.get(i);
 
-                                    String expiryDate = this.getExpiryDateFromGoogle(currentPurchase.getProducts().get(0), currentPurchase.getPurchaseToken());
                                     String orderId = currentPurchase.getOrderId();
+                                    String expiryDate = this.getExpiryDateFromApi(orderId);
 
                                     String dateFormat = "dd-MM-yyyy hh:mm";
                                     SimpleDateFormat simpleDateFormat = new SimpleDateFormat(dateFormat, Locale.getDefault());
@@ -351,14 +355,25 @@ public class Subscriptions {
 
     }
 
-    private String getExpiryDateFromGoogle(String productIdentifier, String purchaseToken) {
+    private String getExpiryDateFromApi(String transactionId) {
 
         try {
 
             // Compile request to verify purchase token
-            URL obj = new URL(this.googleVerifyEndpoint + "&bid=" + this.googleBid + "&subId=" + productIdentifier + "&purchaseToken=" + purchaseToken);
+            URL obj = new URL(this.apiEndpoint);
             HttpURLConnection con = (HttpURLConnection) obj.openConnection();
             con.setRequestMethod("POST");
+            con.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+            con.setRequestProperty("Authorization", "Bearer " + this.jwt);
+            con.setDoOutput(true);
+
+            // JSON-Body erzeugen
+            String body = "{\"transaction_id\": \"" + transactionId + "\"}";
+
+            try (OutputStream os = con.getOutputStream()) {
+                byte[] input = body.getBytes(StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
+            }
 
             // Try to receive response from server
             try (BufferedReader br = new BufferedReader(
@@ -373,20 +388,20 @@ public class Subscriptions {
 
                 // If the response was successful, extract expiryDate and put it in our response data property
                 if (con.getResponseCode() == 200) {
-
                     JSObject postResponseJSON = new JSObject(googleResponse.toString());
-                    JSObject googleResponseJSON = new JSObject(postResponseJSON.get("googleResponse").toString()); // <-- note the typo in response object from server
-                    JSObject payloadJSON = new JSObject(googleResponseJSON.get("payload").toString());
 
-                    String dateFormat = "EEE MMM dd yyyy HH:mm:ss 'GMT'Z '('z')'";
+                    String dateFormat = "yyyy-MM-dd HH:mm:ss";
                     SimpleDateFormat simpleDateFormat = new SimpleDateFormat(dateFormat, Locale.getDefault());
+
+                    // Direkt den gewünschten Schlüssel auslesen
+                    String expiryString = postResponseJSON.getString("expiryDate");
+                    Date date = simpleDateFormat.parse(expiryString);
+
                     Calendar calendar = Calendar.getInstance();
-                    calendar.setTimeInMillis(Long.parseLong((payloadJSON.get("expiryTimeMillis").toString())));
+                    calendar.setTime(date);
 
                     Log.i("EXPIRY", simpleDateFormat.format(calendar.getTime()));
-
                     return simpleDateFormat.format(calendar.getTime());
-
                 } else {
                     return null;
                 }
