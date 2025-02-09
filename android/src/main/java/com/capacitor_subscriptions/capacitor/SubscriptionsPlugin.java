@@ -6,7 +6,6 @@ import android.util.Log;
 
 import com.android.billingclient.api.AcknowledgePurchaseParams;
 import com.android.billingclient.api.BillingClient;
-import com.android.billingclient.api.BillingResult;
 import com.android.billingclient.api.Purchase;
 import com.android.billingclient.api.PurchasesUpdatedListener;
 import com.getcapacitor.JSObject;
@@ -15,125 +14,78 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.List;
-import java.util.Locale;
-
 @CapacitorPlugin(name = "Subscriptions")
 public class SubscriptionsPlugin extends Plugin {
 
     private Subscriptions implementation;
+
     private BillingClient billingClient;
+
     private Boolean acknowledgePurchases = true;
 
-    /**
-     * Neu: Wir merken uns hier den aufrufenden purchaseProduct-Call,
-     * um ihn nach dem Kaufabschluss aufzulösen.
-     */
-    private PluginCall pendingPurchaseCall = null;
+    public SubscriptionsPlugin () {
 
-    public SubscriptionsPlugin () {}
+    }
 
-    // This listener is fired upon completing the billing flow ...
+    // This listener is fired upon completing the billing flow, it is vital to call the acknowledgePurchase
+    // method on the billingClient, with the purchase token otherwise Google will automatically cancel the subscription
+    // shortly after the purchase
     private final PurchasesUpdatedListener purchasesUpdatedListener = (billingResult, purchases) -> {
+
         JSObject response = new JSObject();
 
-        // Falls kein Kauf-Call aussteht, evtl. Abbruch
-        if (pendingPurchaseCall == null) {
-            // Wir können optional nach wie vor die NotifyListeners-Methode beibehalten,
-            // falls du weiterhin das Event basierte Pattern brauchst.
-            response.put("successful", false);
-            response.put("message", "No pending purchase call to resolve");
-            notifyListeners("ANDROID-PURCHASE-RESPONSE", response);
-            return;
-        }
+        if(purchases != null) {
+            for (int i = 0; i < purchases.size(); i++) {
 
-        // Hier werten wir das Billing-Ergebnis aus
-        if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK && purchases != null) {
-            // Kauf erfolgreich
-            // (Falls es mehrere Purchases gibt, du aber immer nur 1 erwartest, nimm [0].)
-            Purchase currentPurchase = purchases.get(0);
+                Purchase currentPurchase = purchases.get(i);
+                if (this.acknowledgePurchases && !currentPurchase.isAcknowledged() && billingResult.getResponseCode() == 0 && currentPurchase.getPurchaseState() != 2) {
 
-            if (this.acknowledgePurchases && !currentPurchase.isAcknowledged() && currentPurchase.getPurchaseState() != Purchase.PurchaseState.PENDING) {
-                // Acknowledge, damit Google das Abo nicht storniert
-                AcknowledgePurchaseParams ackParams = AcknowledgePurchaseParams.newBuilder()
-                        .setPurchaseToken(currentPurchase.getPurchaseToken())
-                        .build();
+                    AcknowledgePurchaseParams acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder()
+                            .setPurchaseToken(currentPurchase.getPurchaseToken())
+                            .build();
 
-                billingClient.acknowledgePurchase(ackParams, billingResult1 -> {
-                    // Kauf erfolgreich acknowledged
-                    Log.i("Purchase ack", currentPurchase.getOriginalJson());
+                    billingClient.acknowledgePurchase(acknowledgePurchaseParams, billingResult1 -> {
+                        Log.i("Purchase ack", currentPurchase.getOriginalJson());
+                        billingResult1.getResponseCode();
 
-                    // Jetzt können wir die finalen Daten zurückgeben
-                    JSObject data = buildPurchaseResult(currentPurchase, true, "Purchase successful & acknowledged");
-                    pendingPurchaseCall.resolve(data);
-                    pendingPurchaseCall = null;
-                });
-            } else {
-                // Entweder already acknowledged oder wir acknowledge nicht
-                JSObject data = buildPurchaseResult(currentPurchase, true, "Purchase successful (no ack needed)");
-                pendingPurchaseCall.resolve(data);
-                pendingPurchaseCall = null;
+                        response.put("successful", true);
+                        response.put("purchaseToken", currentPurchase.getPurchaseToken());
+
+                        // WARNING: Changed the notifyListeners method from protected to public in order to get the method call to work
+                        // This may be a security issue in the future - in order to fix it, it may be best to move this listener + the billingClient
+                        // initiation into the SubscriptionsPlugin.java, then pass it into this implementation class so we can still access the
+                        // billingClient.
+                        notifyListeners("ANDROID-PURCHASE-RESPONSE", response);
+                    });
+                } else if (!this.acknowledgePurchases && billingResult.getResponseCode() == 0 && currentPurchase.getPurchaseState() != 2) {
+                    response.put("successful", true);
+                    response.put("purchaseToken", currentPurchase.getPurchaseToken());
+                    notifyListeners("ANDROID-PURCHASE-RESPONSE", response);
+                } else if (billingResult.getResponseCode() == 0 && currentPurchase.getPurchaseState() != 2) {
+                    response.put("successful", false);
+                    notifyListeners("ANDROID-PURCHASE-RESPONSE", response);
+                } else {
+                    response.put("successful", false);
+                    notifyListeners("ANDROID-PURCHASE-RESPONSE", response);
+                }
+
             }
-
-        } else if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.USER_CANCELED) {
-            // User hat Kauf abgebrochen
-            JSObject data = new JSObject();
-            data.put("successful", false);
-            data.put("message", "Purchase canceled by user");
-            pendingPurchaseCall.resolve(data);
-            pendingPurchaseCall = null;
         } else {
-            // Irgendwas anderes lief schief
-            JSObject data = new JSObject();
-            data.put("successful", false);
-            data.put("message", "Purchase failed with code: " + billingResult.getResponseCode());
-            pendingPurchaseCall.resolve(data);
-            pendingPurchaseCall = null;
+            response.put("successful", false);
+            notifyListeners("ANDROID-PURCHASE-RESPONSE", response);
         }
+
     };
-
-    /**
-     * Hilfsfunktion, um ein JSON mit den wichtigsten Daten zu bauen.
-     */
-    private JSObject buildPurchaseResult(Purchase purchase, boolean success, String message) {
-        JSObject data = new JSObject();
-        data.put("successful", success);
-        data.put("message", message);
-
-        // Wichtige Felder extrahieren
-        data.put("purchaseToken", purchase.getPurchaseToken());
-        data.put("orderId", purchase.getOrderId());
-        data.put("packageName", purchase.getPackageName());
-        data.put("signature", purchase.getSignature());
-
-        long purchaseTime = purchase.getPurchaseTime();
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTimeInMillis(purchaseTime);
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-        data.put("purchaseDate", sdf.format(calendar.getTime()));
-
-        // Falls mehrere Produkte in dem Kauf stecken:
-        List<String> productIds = purchase.getProducts();
-        if (productIds != null && !productIds.isEmpty()) {
-            data.put("productIds", productIds);
-        }
-
-        // Original JSON, falls du debuggen willst
-        data.put("originalJson", purchase.getOriginalJson());
-
-        return data;
-    }
 
     @Override
     public void load() {
+
         this.billingClient = BillingClient.newBuilder(getContext())
                 .setListener(purchasesUpdatedListener)
                 .enablePendingPurchases()
                 .build();
-
         implementation = new Subscriptions(this, billingClient);
+
     }
 
     @PluginMethod
@@ -142,9 +94,10 @@ public class SubscriptionsPlugin extends Plugin {
         String jwt = call.getString("jwt");
         String bid = call.getString("bid");
 
+        Log.i("SET-VERIFY", "Verification values updated");
+
         if(apiEndpoint != null && jwt != null && bid != null) {
             implementation.setApiVerificationDetails(apiEndpoint, jwt, bid);
-            call.resolve();
         } else {
             call.reject("Missing required parameters");
         }
@@ -153,6 +106,7 @@ public class SubscriptionsPlugin extends Plugin {
     @PluginMethod
     public void echo(PluginCall call) {
         String value = call.getString("value");
+
         JSObject ret = new JSObject();
         ret.put("value", implementation.echo(value));
         call.resolve(ret);
@@ -160,65 +114,70 @@ public class SubscriptionsPlugin extends Plugin {
 
     @PluginMethod
     public void getProductDetails(PluginCall call) {
+
         String productIdentifier = call.getString("productIdentifier");
+
         if (productIdentifier == null) {
             call.reject("Must provide a productID");
-            return;
         }
+
         implementation.getProductDetails(productIdentifier, call);
+
     }
 
     @PluginMethod
     public void purchaseProduct(PluginCall call) {
+
         String productIdentifier = call.getString("productIdentifier");
         String accountId = call.getString("accountId");
-        this.acknowledgePurchases = call.getBoolean("acknowledgePurchases", true);
+
+        this.acknowledgePurchases = call.getBoolean("acknowledgePurchases") != null ? call.getBoolean("acknowledgePurchases") : Boolean.TRUE;
 
         if(productIdentifier == null) {
             call.reject("Must provide a productID");
-            return;
         }
 
-        // Hier merken wir uns den Call
-        this.pendingPurchaseCall = call;
-
-        // Rufe die Implementation auf, die lediglich die BillingFlow startet
-        // Das eigentliche Resolve findet erst in purchasesUpdatedListener statt.
         implementation.purchaseProduct(productIdentifier, accountId, call);
+
     }
 
     @PluginMethod
     public void getLatestTransaction(PluginCall call) {
+
         String productIdentifier = call.getString("productIdentifier");
+
         if(productIdentifier == null) {
             call.reject("Must provide a productID");
-            return;
         }
+
         implementation.getLatestTransaction(productIdentifier, call);
+
     }
 
     @PluginMethod
     public void getCurrentEntitlements(PluginCall call) {
+
         implementation.getCurrentEntitlements(call);
+
     }
 
     @PluginMethod
     public void manageSubscriptions(PluginCall call) {
+
         String productIdentifier = call.getString("productIdentifier");
         String jwt = call.getString("jwt");
 
         if(productIdentifier == null) {
             call.reject("Must provide a productID");
-            return;
         }
 
         if(jwt == null) {
             call.reject("Must provide a bundleID");
-            return;
         }
 
         Intent browserIntent = new Intent(Intent.ACTION_VIEW,
                 Uri.parse("https://play.google.com/store/account/subscriptions?sku=" + productIdentifier + "&package=" + jwt));
         getActivity().startActivity(browserIntent);
     }
+
 }

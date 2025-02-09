@@ -303,9 +303,7 @@ public class Subscriptions {
 
     public void purchaseProduct(String productIdentifier, String accountId, PluginCall call) {
 
-        // Wir lösen NICHT mehr selbst "call.resolve()" aus,
-        // sondern starten nur den BillingFlow.
-        // Das "Ergebnis" kommt über onPurchasesUpdated() im Plugin.
+        JSObject response = new JSObject();
 
         if (billingClientIsConnected == 1) {
 
@@ -325,7 +323,6 @@ public class Subscriptions {
 
                         try {
                             ProductDetails productDetails = productDetailsList.get(0);
-
                             BillingFlowParams.Builder builder = BillingFlowParams.newBuilder()
                                     .setProductDetailsParamsList(
                                             List.of(
@@ -341,19 +338,21 @@ public class Subscriptions {
                             BillingFlowParams billingFlowParams = builder.build();
                             BillingResult result = billingClient.launchBillingFlow(this.activity, billingFlowParams);
 
-                            Log.i("purchaseProduct", "BillingFlow launched. resultCode=" + result.getResponseCode());
-                            // NICHT call.resolve(...) hier!
+                            Log.i("RESULT", result.toString());
+                            response.put("responseCode", 0);
+                            response.put("responseMessage", "Successfully opened native popover");
 
                         } catch (Exception e) {
                             Logger.error(e.getMessage());
-                            // Falls schon beim Starten des Flows ein Fehler passiert,
-                            // können wir optional call.reject(...) aufrufen.
-                            call.reject("Failed to open native popover: " + e.getMessage());
+                            response.put("responseCode", 1);
+                            response.put("responseMessage", "Failed to open native popover");
                         }
+
+                        call.resolve(response);
+
                     });
-        } else {
-            call.reject("BillingClient is not connected (code: " + billingClientIsConnected + ")");
         }
+
     }
 
     private String getExpiryDateFromApi(String transactionId) {
