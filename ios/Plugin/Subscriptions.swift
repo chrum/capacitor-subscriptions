@@ -146,9 +146,6 @@ import UIKit
         dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
         let purchaseDateStr = dateFormatter.string(from: transaction.originalPurchaseDate)
 
-        // Kaufdatum
-        let purchaseDateStr = dateFormatter.string(from: transaction.originalPurchaseDate)
-
         // EXPIRATION (falls vorhanden)
         var expiryDateStr = ""
         if let expirationDate = transaction.expirationDate {
