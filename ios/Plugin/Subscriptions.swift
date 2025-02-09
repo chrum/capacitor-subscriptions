@@ -146,6 +146,15 @@ import UIKit
         dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
         let purchaseDateStr = dateFormatter.string(from: transaction.originalPurchaseDate)
 
+        // Kaufdatum
+        let purchaseDateStr = dateFormatter.string(from: transaction.originalPurchaseDate)
+
+        // EXPIRATION (falls vorhanden)
+        var expiryDateStr = ""
+        if let expirationDate = transaction.expirationDate {
+          expiryDateStr = dateFormatter.string(from: expirationDate)
+        }
+
         // Daten zurückgeben
         return [
           "successful": true,
@@ -155,6 +164,7 @@ import UIKit
           "productId": transaction.productID,
           "purchaseDate": purchaseDateStr,
           "purchaseToken": purchaseToken,
+          "expiryDate": expiryDateStr
         ]
 
       case .userCancelled:
