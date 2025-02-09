@@ -49,12 +49,14 @@ public class SubscriptionsPlugin extends Plugin {
                         billingResult1.getResponseCode();
 
                         response.put("successful", true);
-                        response.put("purchaseToken", currentPurchase.getPurchaseToken());
+                        // Anstatt nur den Token zurückzugeben, fügen wir das komplette Purchase-Objekt hinzu
+                        try {
+                            response.put("purchase", new JSObject(currentPurchase.getOriginalJson()));
+                        } catch (Exception e) {
+                            Log.e("Purchase Response", "Error parsing purchase data: " + e.getMessage());
+                            response.put("purchase", currentPurchase.getPurchaseToken());
+                        }
 
-                        // WARNING: Changed the notifyListeners method from protected to public in order to get the method call to work
-                        // This may be a security issue in the future - in order to fix it, it may be best to move this listener + the billingClient
-                        // initiation into the SubscriptionsPlugin.java, then pass it into this implementation class so we can still access the
-                        // billingClient.
                         notifyListeners("ANDROID-PURCHASE-RESPONSE", response);
                     });
                 } else if (!this.acknowledgePurchases && billingResult.getResponseCode() == 0 && currentPurchase.getPurchaseState() != 2) {
