@@ -72,7 +72,7 @@ export class SubscriptionsWeb extends WebPlugin implements SubscriptionsPlugin {
     console.log('manageSubscriptions');
   }
 
-  setGoogleVerificationDetails(options: { googleVerifyEndpoint: string, bid: string }): void {
+  setGoogleVerificationDetails(options: { googleVerifyEndpoint: string, productId: string }): void {
     console.log('setGoogleVerificationDetails', options);
   }
 

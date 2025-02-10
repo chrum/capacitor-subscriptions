@@ -133,12 +133,12 @@
       },
       {
         "name": "setGoogleVerificationDetails",
-        "signature": "(options: { googleVerifyEndpoint: string; bid: string; }) => void",
+        "signature": "(options: { googleVerifyEndpoint: string; productId: string; }) => void",
         "parameters": [
           {
             "name": "options",
             "docs": "",
-            "type": "{ googleVerifyEndpoint: string; bid: string; }"
+            "type": "{ googleVerifyEndpoint: string; productId: string; }"
           }
         ],
         "returns": "void",

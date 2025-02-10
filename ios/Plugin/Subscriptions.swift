@@ -378,11 +378,11 @@ import UIKit
   }
 
   @available(iOS 15.0.0, *)
-  @objc private func updateTrialDate(_ bid: String, _ formattedDate: Data?) {
+  @objc private func updateTrialDate(_ productId: String, _ formattedDate: Data?) {
 
     let keyChainUpdateParams: [String: Any] = [
       kSecClass as String: kSecClassGenericPassword,
-      kSecAttrAccount as String: bid,
+      kSecAttrAccount as String: productId,
     ]
 
     let keyChainUpdateValue: [String: Any] = [

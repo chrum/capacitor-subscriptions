@@ -105,12 +105,12 @@ manageSubscriptions(options: { productIdentifier: string; }) => void
 ### setGoogleVerificationDetails(...)
 
 ```typescript
-setGoogleVerificationDetails(options: { googleVerifyEndpoint: string; bid: string; }) => void
+setGoogleVerificationDetails(options: { googleVerifyEndpoint: string; productId: string; }) => void
 ```
 
 | Param         | Type                                                        |
 | ------------- | ----------------------------------------------------------- |
-| **`options`** | <code>{ googleVerifyEndpoint: string; bid: string; }</code> |
+| **`options`** | <code>{ googleVerifyEndpoint: string; productId: string; }</code> |
 
 --------------------
 

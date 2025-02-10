@@ -36,7 +36,7 @@ export interface SubscriptionsPlugin {
     manageSubscriptions(): any;
     setGoogleVerificationDetails(options: {
         googleVerifyEndpoint: string;
-        bid: string;
+        productId: string;
     }): void;
     addListener(eventName: 'ANDROID-PURCHASE-RESPONSE', listenerFunc: (response: AndroidPurchasedTrigger) => void): Promise<PluginListenerHandle>;
 }

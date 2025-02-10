@@ -68,15 +68,16 @@ This plugin implements capabilities to allow the developer to:
 
 ## Initial Android setup (server validation)
 
-Before calling any methods on the plugin, it is essential to pass a few parameters into the "setGoogleVerificationDetails(...)" method. In an Ionic app, this would be most appropriate near the top of the App.tsx file - simply pass in the server endpoint for the google verification call, along with the app bid, e.g:
+Before calling any methods on the plugin, it is essential to pass a few parameters into the "setGoogleVerificationDetails(...)" method. In an Ionic app, this would be most appropriate near the top of the App.tsx file - simply pass in the server endpoint for the google verification call and the JWT access token, along with the app id, e.g:
 
 ```javascript
 useEffect(() => {
 
-    Subscription.setGoogleVerificationDetails(
-      googleVerifyEndpoint: "https://YOUR-END-POINT.com/",
-      bid: "YOUR-BUNDLE-ID"
-    )
+    Subscriptions.setApiVerificationDetails({
+      apiEndpoint: `${apiUrl}/subscription/expiry`,
+      jwt: authStore.auth.jwt,
+      app: appId,
+    })
 
 	// start making calls to other plugin methods
 
@@ -97,7 +98,6 @@ Subscription.getCurrentEntitlements().then((entitlements: any) => {
 });
 
 async getCurrentEntitlements() {
-
 	const response: CurrentEntitlementsResponse = await Subscriptions.getCurrentEntitlements();
 	if (response.responseCode == 0){
 		return response.data as Transaction[];

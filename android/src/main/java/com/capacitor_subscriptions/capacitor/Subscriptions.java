@@ -1,38 +1,36 @@
 package com.capacitor_subscriptions.capacitor;
 
 import android.app.Activity;
+import android.content.Context;
 import android.util.Log;
+import androidx.annotation.NonNull;
 
+// Google Play Billing imports
 import com.android.billingclient.api.BillingClient;
-
 import com.android.billingclient.api.BillingClientStateListener;
 import com.android.billingclient.api.BillingFlowParams;
 import com.android.billingclient.api.BillingResult;
 import com.android.billingclient.api.ProductDetails;
 import com.android.billingclient.api.Purchase;
-import com.android.billingclient.api.PurchaseHistoryRecord;
 import com.android.billingclient.api.QueryProductDetailsParams;
-import com.android.billingclient.api.QueryPurchaseHistoryParams;
 import com.android.billingclient.api.QueryPurchasesParams;
+
+// Capacitor imports
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Logger;
 import com.getcapacitor.PluginCall;
 
-import android.content.Context;
-
-
-import androidx.annotation.NonNull;
-
-import java.util.Date;
-import java.io.OutputStream;
+// Java utilities
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -46,30 +44,30 @@ public class Subscriptions {
 
     private String apiEndpoint = "";
     private String jwt = "";
-    private String bid = "";
+    private String productId = "";
 
     public Subscriptions(SubscriptionsPlugin plugin, BillingClient billingClient) {
-
         this.billingClient = billingClient;
-        this.billingClient.startConnection(new BillingClientStateListener() {
-            @Override
-            public void onBillingSetupFinished(@NonNull BillingResult billingResult) {
-                if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
-                    billingClientIsConnected = 1;
-                } else {
-                    billingClientIsConnected = billingResult.getResponseCode();
-                }
-            }
+        this.billingClient.startConnection(
+                new BillingClientStateListener() {
+                    @Override
+                    public void onBillingSetupFinished(@NonNull BillingResult billingResult) {
+                        if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+                            billingClientIsConnected = 1;
+                        } else {
+                            billingClientIsConnected = billingResult.getResponseCode();
+                        }
+                    }
 
-            @Override
-            public void onBillingServiceDisconnected() {
-                // Try to restart the connection on the next request to
-                // Google Play by calling the startConnection() method.
-            }
-        });
+                    @Override
+                    public void onBillingServiceDisconnected() {
+                        // Try to restart the connection on the next request to
+                        // Google Play by calling the startConnection() method.
+                    }
+                }
+            );
         this.activity = plugin.getActivity();
         this.context = plugin.getContext();
-
     }
 
     public String echo(String value) {
@@ -77,288 +75,225 @@ public class Subscriptions {
         return value;
     }
 
-    public void setApiVerificationDetails(String apiEndpoint, String jwt, String bid) {
+    public void setApiVerificationDetails(String apiEndpoint, String jwt, String productId) {
         this.apiEndpoint = apiEndpoint;
         this.jwt = jwt;
-        this.bid = bid;
+        this.productId = productId;
 
         Log.i("SET-VERIFY", "Verification values updated");
     }
 
     public void getProductDetails(String productIdentifier, PluginCall call) {
-
         JSObject response = new JSObject();
 
         if (billingClientIsConnected == 1) {
-
             QueryProductDetailsParams.Product productToFind = QueryProductDetailsParams.Product.newBuilder()
-                    .setProductId(productIdentifier)
-                    .setProductType(BillingClient.ProductType.SUBS)
-                    .build();
+                .setProductId(productIdentifier)
+                .setProductType(BillingClient.ProductType.SUBS)
+                .build();
 
-            QueryProductDetailsParams queryProductDetailsParams =
-                    QueryProductDetailsParams.newBuilder()
-                            .setProductList(List.of(productToFind))
-                            .build();
+            QueryProductDetailsParams queryProductDetailsParams = QueryProductDetailsParams.newBuilder()
+                .setProductList(List.of(productToFind))
+                .build();
 
-            billingClient.queryProductDetailsAsync(
-                    queryProductDetailsParams,
-                    (billingResult, productDetailsList) -> {
+            billingClient.queryProductDetailsAsync(queryProductDetailsParams, (billingResult, productDetailsList) -> {
+                try {
+                    ProductDetails productDetails = productDetailsList.get(0);
+                    String productId = productDetails.getProductId();
+                    String title = productDetails.getTitle();
+                    String desc = productDetails.getDescription();
+                    Log.i("productIdentifier", productId);
+                    Log.i("displayName", title);
+                    Log.i("desc", desc);
 
-                        try {
+                    List<ProductDetails.SubscriptionOfferDetails> subscriptionOfferDetails = productDetails.getSubscriptionOfferDetails();
 
-                            ProductDetails productDetails = productDetailsList.get(0);
-                            String productId = productDetails.getProductId();
-                            String title = productDetails.getTitle();
-                            String desc = productDetails.getDescription();
-                            Log.i("productIdentifier", productId);
-                            Log.i("displayName", title);
-                            Log.i("desc", desc);
+                    String price = Objects.requireNonNull(subscriptionOfferDetails)
+                        .get(0)
+                        .getPricingPhases()
+                        .getPricingPhaseList()
+                        .get(0)
+                        .getFormattedPrice();
 
-                            List<ProductDetails.SubscriptionOfferDetails> subscriptionOfferDetails = productDetails.getSubscriptionOfferDetails();
+                    JSObject data = new JSObject();
+                    data.put("productIdentifier", productId);
+                    data.put("displayName", title);
+                    data.put("description", desc);
+                    data.put("price", price);
 
-                            String price = Objects.requireNonNull(subscriptionOfferDetails).get(0).getPricingPhases().getPricingPhaseList().get(0).getFormattedPrice();
+                    response.put("responseCode", 0);
+                    response.put("responseMessage", "Successfully found the product details for given productIdentifier");
+                    response.put("data", data);
+                } catch (Exception e) {
+                    Log.e("Err", e.toString());
+                    response.put("responseCode", 1);
+                    response.put("responseMessage", "Could not find a product matching the given productIdentifier");
+                }
 
-                            JSObject data = new JSObject();
-                            data.put("productIdentifier", productId);
-                            data.put("displayName", title);
-                            data.put("description", desc);
-                            data.put("price", price);
-
-                            response.put("responseCode", 0);
-                            response.put("responseMessage", "Successfully found the product details for given productIdentifier");
-                            response.put("data", data);
-
-                        } catch (Exception e) {
-                            Log.e("Err", e.toString());
-                            response.put("responseCode", 1);
-                            response.put("responseMessage", "Could not find a product matching the given productIdentifier");
-                        }
-
-                        call.resolve(response);
-                    }
-            );
-
+                call.resolve(response);
+            });
         } else if (billingClientIsConnected == 2) {
-
             response.put("responseCode", 500);
             response.put("responseMessage", "Android: BillingClient failed to initialise");
             call.resolve(response);
-
         } else {
-
             response.put("responseCode", billingClientIsConnected);
             response.put("responseMessage", "Android: BillingClient failed to initialise");
 
             response.put("responseCode", 503);
             response.put("responseMessage", "Android: BillingClient is still initialising");
             call.resolve(response);
-
         }
     }
 
     public void getLatestTransaction(String productIdentifier, PluginCall call) {
-
         JSObject response = new JSObject();
 
         if (billingClientIsConnected == 1) {
+            QueryPurchasesParams queryPurchasesParams = QueryPurchasesParams.newBuilder()
+                .setProductType(BillingClient.ProductType.SUBS)
+                .build();
 
-            QueryPurchaseHistoryParams queryPurchaseHistoryParams =
-                    QueryPurchaseHistoryParams.newBuilder()
-                            .setProductType(BillingClient.ProductType.SUBS)
-                            .build();
-
-
-            billingClient.queryPurchaseHistoryAsync(queryPurchaseHistoryParams, (BillingResult billingResult, List<PurchaseHistoryRecord> list) -> {
-
-                // Try to loop through the list until we find a purchase history record associated with the passed in productIdentifier.
-                // If we do, then set found to true to break out of the loop, then compile a response with necessary data. Otherwise compile
-                // a response saying that the there were not transactions for the given productIdentifier.
-                int i = 0;
-                boolean found = false;
-                while (list != null && (i < list.size() && !found)) {
-                    try {
-
-                        JSObject currentPurchaseHistoryRecord = new JSObject(list.get(i).getOriginalJson());
-                        Log.i("PurchaseHistory", currentPurchaseHistoryRecord.toString());
-
-                        if (currentPurchaseHistoryRecord.get("productId").equals(productIdentifier)) {
-
-                            found = true;
-
+            billingClient.queryPurchasesAsync(queryPurchasesParams, (billingResult, purchases) -> {
+                if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+                    for (Purchase purchase : purchases) {
+                        if (purchase.getProducts().contains(productIdentifier)) {
                             JSObject data = new JSObject();
-                            Calendar calendar = Calendar.getInstance();
-                            calendar.setTimeInMillis(Long.parseLong((currentPurchaseHistoryRecord.get("purchaseTime").toString())));
-                            String orderId = currentPurchaseHistoryRecord.optString("orderId", "");  // Usamos optString para obtener un valor por defecto si la clave no existe
-                            String expiryDate = getExpiryDateFromApi(orderId);
-                            if (expiryDate != null) {
-                                data.put("expiryDate", expiryDate);
+                            try {
+                                data.put("transaction", new JSObject(purchase.getOriginalJson()));
+                                data.put("productIdentifier", purchase.getProducts().get(0));
+                                data.put("transactionId", purchase.getOrderId());
+                                data.put("purchaseToken", purchase.getPurchaseToken());
+
+                                response.put("responseCode", 0);
+                                response.put("responseMessage", "Successfully found transaction");
+                                response.put("data", data);
+                                call.resolve(response);
+                                return;
+                            } catch (Exception e) {
+                                Log.e("Transaction", "Error parsing purchase data: " + e.getMessage());
                             }
-                            data.put("productIdentifier", currentPurchaseHistoryRecord.get("productId"));
-                            data.put("originalId", orderId);
-                            data.put("transactionId", orderId);
-                            data.put("developerPayload",currentPurchaseHistoryRecord.optString("developerPayload", ""));  // Usamos optString para obtener un valor por defecto si la clave no existe
-                            data.put("purchaseToken", currentPurchaseHistoryRecord.get("purchaseToken").toString());
-
-                            response.put("responseCode", 0);
-                            response.put("responseMessage", "Successfully found the latest transaction matching given productIdentifier");
-                            response.put("data", data);
                         }
-                    } catch (Exception e) {
-                        Logger.error(e.getMessage());
                     }
-
-                    i++;
-
                 }
 
-                // If after looping through the list of purchase history records, no records are found to be associated with
-                // the given product identifier, return a response saying no transactions found
-                if (!found) {
-                    response.put("responseCode", 3);
-                    response.put("responseMessage", "No transaction for given productIdentifier, or it could not be verified");
-                }
-
+                response.put("responseCode", 3);
+                response.put("responseMessage", "No transaction found");
                 call.resolve(response);
-
             });
-
+        } else {
+            response.put("responseCode", billingClientIsConnected);
+            response.put("responseMessage", "BillingClient not connected");
+            call.resolve(response);
         }
-
     }
 
     public void getCurrentEntitlements(PluginCall call) {
-
         JSObject response = new JSObject();
 
         if (billingClientIsConnected == 1) {
+            QueryPurchasesParams queryPurchasesParams = QueryPurchasesParams.newBuilder()
+                .setProductType(BillingClient.ProductType.SUBS)
+                .build();
 
-            QueryPurchasesParams queryPurchasesParams =
-                    QueryPurchasesParams.newBuilder()
-                            .setProductType(BillingClient.ProductType.SUBS)
-                            .build();
+            billingClient.queryPurchasesAsync(queryPurchasesParams, (billingResult, purchaseList) -> {
+                try {
+                    int amountOfPurchases = purchaseList.size();
 
-            billingClient.queryPurchasesAsync(
-                    queryPurchasesParams,
-                    (billingResult, purchaseList) -> {
+                    if (amountOfPurchases > 0) {
+                        ArrayList<JSObject> entitlements = new ArrayList<JSObject>();
+                        for (int i = 0; i < purchaseList.size(); i++) {
+                            Purchase currentPurchase = purchaseList.get(i);
 
-                        try {
+                            String orderId = currentPurchase.getOrderId();
+                            String expiryDate = this.getExpiryDateFromApi(orderId);
 
-                            int amountOfPurchases = purchaseList.size();
+                            String dateFormat = "dd-MM-yyyy hh:mm";
+                            SimpleDateFormat simpleDateFormat = new SimpleDateFormat(dateFormat, Locale.getDefault());
+                            Calendar calendar = Calendar.getInstance();
+                            calendar.setTimeInMillis(Long.parseLong((String.valueOf(currentPurchase.getPurchaseTime()))));
 
-                            if (amountOfPurchases > 0) {
-
-                                ArrayList<JSObject> entitlements = new ArrayList<JSObject>();
-                                for (int i = 0; i < purchaseList.size(); i++) {
-
-                                    Purchase currentPurchase = purchaseList.get(i);
-
-                                    String orderId = currentPurchase.getOrderId();
-                                    String expiryDate = this.getExpiryDateFromApi(orderId);
-
-                                    String dateFormat = "dd-MM-yyyy hh:mm";
-                                    SimpleDateFormat simpleDateFormat = new SimpleDateFormat(dateFormat, Locale.getDefault());
-                                    Calendar calendar = Calendar.getInstance();
-                                    calendar.setTimeInMillis(Long.parseLong((String.valueOf(currentPurchase.getPurchaseTime()))));
-
-                                    entitlements.add(
-                                            new JSObject()
-                                                    .put("productIdentifier", currentPurchase.getProducts().get(0))
-                                                    .put("expiryDate", expiryDate)
-                                                    .put("originalStartDate", simpleDateFormat.format(calendar.getTime()))
-                                                    .put("originalId", orderId)
-                                                    .put("transactionId", orderId)
-                                                    .put("purchaseToken", currentPurchase.getPurchaseToken())
-                                    );
-                                }
-
-                                response.put("responseCode", 0);
-                                response.put("responseMessage", "Successfully found all entitlements across all product types");
-                                response.put("data", entitlements);
-
-
-                            } else {
-                                Log.i("No Purchases", "No active subscriptions found");
-                                response.put("responseCode", 1);
-                                response.put("responseMessage", "No entitlements were found");
-                            }
-
-
-                            call.resolve(response);
-
-                        } catch (Exception e) {
-                            Log.e("Error", e.toString());
-                            response.put("responseCode", 2);
-                            response.put("responseMessage", e.toString());
+                            entitlements.add(
+                                new JSObject()
+                                    .put("productIdentifier", currentPurchase.getProducts().get(0))
+                                    .put("expiryDate", expiryDate)
+                                    .put("originalStartDate", simpleDateFormat.format(calendar.getTime()))
+                                    .put("originalId", orderId)
+                                    .put("transactionId", orderId)
+                                    .put("purchaseToken", currentPurchase.getPurchaseToken())
+                            );
                         }
 
-                        call.resolve(response);
-
+                        response.put("responseCode", 0);
+                        response.put("responseMessage", "Successfully found all entitlements across all product types");
+                        response.put("data", entitlements);
+                    } else {
+                        Log.i("No Purchases", "No active subscriptions found");
+                        response.put("responseCode", 1);
+                        response.put("responseMessage", "No entitlements were found");
                     }
-            );
 
+                    call.resolve(response);
+                } catch (Exception e) {
+                    Log.e("Error", e.toString());
+                    response.put("responseCode", 2);
+                    response.put("responseMessage", e.toString());
+                }
+
+                call.resolve(response);
+            });
         }
-
     }
 
     public void purchaseProduct(String productIdentifier, String accountId, PluginCall call) {
-
         JSObject response = new JSObject();
 
         if (billingClientIsConnected == 1) {
-
             QueryProductDetailsParams.Product productToFind = QueryProductDetailsParams.Product.newBuilder()
-                    .setProductId(productIdentifier)
-                    .setProductType(BillingClient.ProductType.SUBS)
-                    .build();
+                .setProductId(productIdentifier)
+                .setProductType(BillingClient.ProductType.SUBS)
+                .build();
 
-            QueryProductDetailsParams queryProductDetailsParams =
-                    QueryProductDetailsParams.newBuilder()
-                            .setProductList(List.of(productToFind))
-                            .build();
+            QueryProductDetailsParams queryProductDetailsParams = QueryProductDetailsParams.newBuilder()
+                .setProductList(List.of(productToFind))
+                .build();
 
-            billingClient.queryProductDetailsAsync(
-                    queryProductDetailsParams,
-                    (billingResult1, productDetailsList) -> {
+            billingClient.queryProductDetailsAsync(queryProductDetailsParams, (billingResult1, productDetailsList) -> {
+                try {
+                    ProductDetails productDetails = productDetailsList.get(0);
+                    BillingFlowParams.Builder builder = BillingFlowParams.newBuilder()
+                        .setProductDetailsParamsList(
+                            List.of(
+                                BillingFlowParams.ProductDetailsParams.newBuilder()
+                                    .setProductDetails(productDetails)
+                                    .setOfferToken(
+                                        Objects.requireNonNull(productDetails.getSubscriptionOfferDetails()).get(0).getOfferToken()
+                                    )
+                                    .build()
+                            )
+                        );
+                    if (accountId != null) {
+                        builder.setObfuscatedAccountId(accountId);
+                    }
+                    BillingFlowParams billingFlowParams = builder.build();
+                    BillingResult result = billingClient.launchBillingFlow(this.activity, billingFlowParams);
 
-                        try {
-                            ProductDetails productDetails = productDetailsList.get(0);
-                            BillingFlowParams.Builder builder = BillingFlowParams.newBuilder()
-                                    .setProductDetailsParamsList(
-                                            List.of(
-                                                    BillingFlowParams.ProductDetailsParams.newBuilder()
-                                                            .setProductDetails(productDetails)
-                                                            .setOfferToken(Objects.requireNonNull(productDetails.getSubscriptionOfferDetails()).get(0).getOfferToken())
-                                                            .build()
-                                            )
-                                    );
-                            if (accountId != null) {
-                                builder.setObfuscatedAccountId(accountId);
-                            }
-                            BillingFlowParams billingFlowParams = builder.build();
-                            BillingResult result = billingClient.launchBillingFlow(this.activity, billingFlowParams);
+                    Log.i("RESULT", result.toString());
+                    response.put("responseCode", 0);
+                    response.put("responseMessage", "Successfully opened native popover");
+                } catch (Exception e) {
+                    Logger.error(e.getMessage());
+                    response.put("responseCode", 1);
+                    response.put("responseMessage", "Failed to open native popover");
+                }
 
-                            Log.i("RESULT", result.toString());
-                            response.put("responseCode", 0);
-                            response.put("responseMessage", "Successfully opened native popover");
-
-                        } catch (Exception e) {
-                            Logger.error(e.getMessage());
-                            response.put("responseCode", 1);
-                            response.put("responseMessage", "Failed to open native popover");
-                        }
-
-                        call.resolve(response);
-
-                    });
+                call.resolve(response);
+            });
         }
-
     }
 
     private String getExpiryDateFromApi(String transactionId) {
-
         try {
-
             // Compile request to verify purchase token
             URL obj = new URL(this.apiEndpoint);
             HttpURLConnection con = (HttpURLConnection) obj.openConnection();
@@ -376,9 +311,7 @@ public class Subscriptions {
             }
 
             // Try to receive response from server
-            try (BufferedReader br = new BufferedReader(
-                    new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8))) {
-
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8))) {
                 StringBuilder googleResponse = new StringBuilder();
                 String responseLine;
                 while ((responseLine = br.readLine()) != null) {
@@ -408,7 +341,6 @@ public class Subscriptions {
             } catch (Exception e) {
                 Logger.error(e.getMessage());
             }
-
         } catch (Exception e) {
             Logger.error(e.getMessage());
         }

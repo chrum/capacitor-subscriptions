@@ -30,7 +30,7 @@ export declare class SubscriptionsWeb extends WebPlugin implements Subscriptions
     manageSubscriptions(): void;
     setGoogleVerificationDetails(options: {
         googleVerifyEndpoint: string;
-        bid: string;
+        productId: string;
     }): void;
     addListener(eventName: 'ANDROID-PURCHASE-RESPONSE', listenerFunc: (response: AndroidPurchasedTrigger) => void): Promise<PluginListenerHandle>;
 }
