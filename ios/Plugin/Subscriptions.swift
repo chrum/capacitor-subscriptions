@@ -4,7 +4,7 @@ import StoreKit
 import UIKit
 
 @objc public class Subscriptions: NSObject {
-
+  let iAPManager = IAPManager()
   override init() {
     super.init()
     if #available(iOS 15.0.0, *) {
@@ -129,14 +129,15 @@ import UIKit
         // Wir bauen nun ein Detail-Objekt, analog zum Android-Ansatz:
         // transaction.id, transaction.originalID, transaction.productID, etc.
         // iOS hat kein "orderId" wie Google, daher nimm `transactionId` oder `originalId`.
-        var purchaseToken = ""
         var receiptString = ""
+          
+        let refresh = iAPManager.refreshReceipt()
+          
         if let appStoreReceiptURL = Bundle.main.appStoreReceiptURL,
           FileManager.default.fileExists(atPath: appStoreReceiptURL.path)
         {
           do {
             let receiptData = try Data(contentsOf: appStoreReceiptURL, options: .alwaysMapped)
-            purchaseToken = receiptData.base64EncodedString()
             receiptString = receiptData.base64EncodedString(options: [
               Data.Base64EncodingOptions.endLineWithCarriageReturn
             ])
@@ -164,7 +165,6 @@ import UIKit
           "originalId": transaction.originalID,  // die "höhere" ID
           "productId": transaction.productID,
           "purchaseDate": purchaseDateStr,
-          "purchaseToken": purchaseToken,
           "expiryDate": expiryDateStr,
           "receipt": receiptString
         ]
@@ -287,6 +287,8 @@ import UIKit
       print("transaction.originalID", transaction.originalID)
 
       var receiptString = ""
+        
+      let refresh = iAPManager.refreshReceipt()
 
       if let appStoreReceiptURL = Bundle.main.appStoreReceiptURL,
         FileManager.default.fileExists(atPath: appStoreReceiptURL.path)
@@ -314,7 +316,6 @@ import UIKit
           "originalId": transaction.originalID,
           "transactionId": transaction.id,
           "expiryDate": transaction.expirationDate!,
-          "purchaseToken": receiptString,
           "receipt": receiptString
         ],
       ]
@@ -434,4 +435,29 @@ import UIKit
 
   }
 
+}
+
+class IAPManager: NSObject, SKRequestDelegate
+{
+    @Published var toBeBool = true;
+    func refreshReceipt() -> Bool{
+        let request = SKReceiptRefreshRequest(receiptProperties: nil)
+        request.delegate = self
+        request.start()
+        return toBeBool
+    }
+    
+    func requestDidFinish(_ request: SKRequest){
+            if request is SKReceiptRefreshRequest {
+                toBeBool = true
+            }
+        }
+        
+    func request(_ request: SKRequest, didFailWithError error: Error){
+        if request is SKReceiptRefreshRequest {
+            print("In the SKReceiptRefreshRequest")
+            toBeBool = false
+        }
+        print("error: \(error.localizedDescription)")
+    }
 }
