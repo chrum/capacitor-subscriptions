@@ -166,7 +166,7 @@ import UIKit
           "productId": transaction.productID,
           "purchaseDate": purchaseDateStr,
           "expiryDate": expiryDateStr,
-          "receipt": receiptString
+          "receiptString": receiptString
         ]
 
       case .userCancelled:
@@ -316,7 +316,7 @@ import UIKit
           "originalId": transaction.originalID,
           "transactionId": transaction.id,
           "expiryDate": transaction.expirationDate!,
-          "receipt": receiptString
+          "receiptString": receiptString
         ],
       ]
 
